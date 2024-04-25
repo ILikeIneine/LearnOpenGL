@@ -9,21 +9,23 @@ auto vertexShaderSource = R"(
 #version 330 core 
 layout (location = 0) 
 in vec3 aPos; 
+in vec3 color; 
+out vec3 Color;
 void main()
 {
-   //Color = color;
+   Color = color;
    gl_Position = vec4(aPos, 1.0f);
 }
 )";
 
 auto fragmentShaderSource = R"(
 #version 330 core
+in vec3 Color;
 out vec4 FragColor;
-uniform vec3 triangleColor;
 void main()
 {
 	
-	FragColor = vec4(triangleColor, 1.0f);
+	FragColor = vec4(Color, 1.0f);
 }
 )";
 
@@ -70,15 +72,15 @@ int main()
     glUseProgram(shaderProgram);
 
     float vertices[] = {
-		-0.6f,0.0f,0.0f,
-        -0.3f,0.4f,0.0f, 
-        -0.01f,0.0f,0.0f,
-    	0.01f,0.0f,0.0f, 
-        0.3f,0.4f,0.0f,
-        0.6f,0.0f,0.0f, 
-    	-0.6f,-0.1f,0.0f,
-        0.6f,-0.1f,0.0f, 
-        0.0f, -0.4f, 0.0f
+		-0.6f,0.0f,0.0f, 1.0f, 0.0f, 0.0f,
+        -0.3f,0.4f,0.0f, 0.0f, 0.0f, 1.0f,
+        -0.01f,0.0f,0.0f, 0.0f, 1.0f, 0.0f,
+    	0.01f,0.0f,0.0f, 0.0f, 1.0f, 0.0f,
+        0.3f,0.4f,0.0f,1.0f, 0.0f, 0.0f,
+        0.6f,0.0f,0.0f, 0.0f, 0.0f, 1.0f,
+    	-0.6f,-0.1f,0.0f, 1.0f, 0.0f, 0.0f,
+        0.6f,-0.1f,0.0f, 0.0f, 0.0f, 1.0f,
+        0.0f, -0.4f, 0.0f, 0.0f, 0.0f, 1.0f
     };
 
     unsigned int indices[] = {
@@ -106,12 +108,11 @@ int main()
     
     // Specify the layout of the vertex data
     auto posAttrib = glGetAttribLocation(shaderProgram, "aPos");
-    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), static_cast<void*>(nullptr));
+    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), static_cast<void*>(nullptr));
     glEnableVertexAttribArray(posAttrib);
-    //auto colAttrib = glGetAttribLocation(shaderProgram, "color");
-    //glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
-    //glEnableVertexAttribArray(colAttrib);
-    auto uniColor = glGetUniformLocation(shaderProgram, "triangleColor");
+    auto colAttrib = glGetAttribLocation(shaderProgram, "color");
+    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
+    glEnableVertexAttribArray(colAttrib);
 
     // note that this is allowed, the call to glVertexAttribPointer 
     // registered VBO as the vertex attribute's bound vertex buffer 
@@ -126,23 +127,15 @@ int main()
     //glBindVertexArray(0);
 
 
-
-    auto t_start = std::chrono::high_resolution_clock::now();
-
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
-
-        // wireframe mode
-        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
-        auto t_now = std::chrono::high_resolution_clock::now();
-        auto time = std::chrono::duration_cast<std::chrono::duration<float>>(t_now - t_start).count();
-        glUniform3f(uniColor, (sin(time * 4.0f) + 1.0f) / 2.0f, 0.0f, 0.0f);
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        // Draw
+        // wireframe mode
+        //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
         glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
 
         glfwSwapBuffers(window);
