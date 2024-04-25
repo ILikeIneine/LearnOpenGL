@@ -71,62 +71,62 @@ int main()
     auto shaderProgram = linkShader(vertexShader, fragmentShader);
     glUseProgram(shaderProgram);
 
-    float vertices[] = {
+    float first_triangle[] = {
 		-0.6f,0.0f,0.0f, 1.0f, 0.0f, 0.0f,
         -0.3f,0.4f,0.0f, 0.0f, 0.0f, 1.0f,
-        -0.01f,0.0f,0.0f, 0.0f, 1.0f, 0.0f,
-    	0.01f,0.0f,0.0f, 0.0f, 1.0f, 0.0f,
-        0.3f,0.4f,0.0f,1.0f, 0.0f, 0.0f,
-        0.6f,0.0f,0.0f, 0.0f, 0.0f, 1.0f,
-    	-0.6f,-0.1f,0.0f, 1.0f, 0.0f, 0.0f,
-        0.6f,-0.1f,0.0f, 0.0f, 0.0f, 1.0f,
-        0.0f, -0.4f, 0.0f, 0.0f, 0.0f, 1.0f
+        .0f,0.0f,0.0f, 0.0f, 1.0f, 0.0f
+    };
+
+    float second_triangle[] = {
+    .0f,0.0f,0.0f, 0.0f, 1.0f, 0.0f,
+    0.3f,0.4f,0.0f,1.0f, 0.0f, 0.0f,
+    0.6f,0.0f,0.0f, 0.0f, 0.0f, 1.0f,
     };
 
     unsigned int indices[] = {
         0,1,2,
-        3,4,5,
-        6,7,8
     };
 
 
-    unsigned int VAO;
-    glGenVertexArrays(1, &VAO);
-    glBindVertexArray(VAO);
-
-    unsigned int VBO;
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    unsigned int EBO;
-    glGenBuffers(1, &EBO);
+    //**************************************************************************
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), 
     // and then configure vertex attributes(s).
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-    
-    // Specify the layout of the vertex data
+    //**************************************************************************
+    unsigned int vao[2];
+	unsigned int vbo[2];
+    unsigned int ebo[2];
+    glGenVertexArrays(2, vao);
+    glGenBuffers(2, vbo);
+    glGenBuffers(2, ebo);
     auto posAttrib = glGetAttribLocation(shaderProgram, "aPos");
+    auto colAttrib = glGetAttribLocation(shaderProgram, "color");
+
+    // Bind first
+    glBindVertexArray(vao[0]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(first_triangle), first_triangle, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    // Attributes
     glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), static_cast<void*>(nullptr));
     glEnableVertexAttribArray(posAttrib);
-    auto colAttrib = glGetAttribLocation(shaderProgram, "color");
     glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
     glEnableVertexAttribArray(colAttrib);
 
-    // note that this is allowed, the call to glVertexAttribPointer 
-    // registered VBO as the vertex attribute's bound vertex buffer 
-    // object so afterward we can safely unbind
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
+    // Bind second
+    glBindVertexArray(vao[1]);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(second_triangle), second_triangle, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    // Attributes
+    glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), static_cast<void*>(nullptr));
+    glEnableVertexAttribArray(posAttrib);
+    glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
+    glEnableVertexAttribArray(colAttrib);
 
-    // You can unbind the VAO afterward so other VAO calls won't 
-    // accidentally modify this VAO, but this rarely happens. 
-    // Modifying other VAOs requires a call to glBindVertexArray 
-    // anyway. So we generally don't unbind VAOs (nor VBOs) when 
-    // it's not directly necessary.
-    //glBindVertexArray(0);
 
-
+    // Main loop
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
 
@@ -136,7 +136,11 @@ int main()
         // wireframe mode
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+        glBindVertexArray(vao[0]);
         glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
+
+        glBindVertexArray(vao[1]);
+        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
@@ -144,8 +148,8 @@ int main()
 
     // optional: de-allocate all resources once they've outlived their purpose:
 	// ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
+    glDeleteVertexArrays(2,vao);
+    glDeleteBuffers(2, vbo);
     glDeleteProgram(shaderProgram);
 
     glfwTerminate();
