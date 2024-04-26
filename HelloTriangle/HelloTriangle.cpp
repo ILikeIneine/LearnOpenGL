@@ -49,7 +49,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     
-    auto window = glfwCreateWindow(800, 600, "LearnOpenGL", nullptr, nullptr);
+    auto window = glfwCreateWindow(800, 800, "LearnOpenGL", nullptr, nullptr);
     if (!window) {
         std::cout << "Failed to create GLFW window\n";
         glfwTerminate();
@@ -68,23 +68,42 @@ int main()
     // create fragment shader
     auto fragmentShader = loadShader(GL_FRAGMENT_SHADER, fragmentShaderSource);
     // link shaders
-    auto shaderProgram = linkShader(vertexShader, fragmentShader);
-    glUseProgram(shaderProgram);
+    auto shaderProgram = createProgramWithShaders(vertexShader, fragmentShader);
 
-    float first_triangle[] = {
-		-0.6f,0.0f,0.0f, 1.0f, 0.0f, 0.0f,
-        -0.3f,0.4f,0.0f, 0.0f, 0.0f, 1.0f,
-        .0f,0.0f,0.0f, 0.0f, 1.0f, 0.0f
+
+    const float first_triangle[] = {
+	    0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+	    -0.6f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,
+	    -0.6f, 0.6f, 0.0f, 1.0f, 0.0f, 0.0f,
+
+	    0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+	    0.0f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f,
+	    0.6f, 0.6f, 0.0f, 0.0f, 0.0f, 1.0f,
+
+	    0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+	    0.6f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+	    0.6f, -0.6f, 0.0f, 0.0f, 1.0f, 0.0f,
+
+	    0.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+	    0.0f, -0.6f, 0.0f, 1.0f, 1.0f, 0.0f,
+	    -0.6f, -0.6f, 0.0f, 1.0f, 1.0f, 0.0f
     };
 
-    float second_triangle[] = {
-    .0f,0.0f,0.0f, 0.0f, 1.0f, 0.0f,
-    0.3f,0.4f,0.0f,1.0f, 0.0f, 0.0f,
-    0.6f,0.0f,0.0f, 0.0f, 0.0f, 1.0f,
+    const float second_triangle[] = {
+	    0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f,
+	    0.3f, 0.6f, 0.0f, 1.0f, 0.0f, 0.0f,
+	    0.6f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f
     };
 
-    unsigned int indices[] = {
+    const unsigned int indices1[] = {
         0,1,2,
+        3,4,5,
+        6,7,8,
+        9,10,11
+    };
+
+    const unsigned int indices2[] = {
+		0,1,2
     };
 
 
@@ -106,7 +125,7 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(first_triangle), first_triangle, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices1), indices1, GL_STATIC_DRAW);
     // Attributes
     glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), static_cast<void*>(nullptr));
     glEnableVertexAttribArray(posAttrib);
@@ -118,29 +137,25 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(second_triangle), second_triangle, GL_STATIC_DRAW);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices2), indices2, GL_STATIC_DRAW);
     // Attributes
     glVertexAttribPointer(posAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), static_cast<void*>(nullptr));
     glEnableVertexAttribArray(posAttrib);
     glVertexAttribPointer(colAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
     glEnableVertexAttribArray(colAttrib);
 
-
     // Main loop
     while (!glfwWindowShouldClose(window)) {
         processInput(window);
 
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // wireframe mode
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
+        glUseProgram(shaderProgram);
         glBindVertexArray(vao[0]);
-        glDrawElements(GL_TRIANGLES, sizeof(indices)/sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
-
-        glBindVertexArray(vao[1]);
-        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(unsigned int), GL_UNSIGNED_INT, nullptr);
+        glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, nullptr);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

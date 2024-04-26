@@ -20,6 +20,7 @@ add_library(GLFW STATIC IMPORTED)
 set_target_properties(GLFW PROPERTIES IMPORTED_LOCATION "C:/Users/m01016/Git/glfw/out/build/x64-debug/src/glfw3.lib")
 
 # sudirectories
-add_subdirectory(HelloTriangle)
 add_subdirectory(GLAD)
+add_subdirectory(HelloTriangle)
+add_subdirectory(ShaderToy)
 

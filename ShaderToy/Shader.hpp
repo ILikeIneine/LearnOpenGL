@@ -2,39 +2,34 @@
 #include <concepts>
 #include <iostream>
 #include <format>
+
 #include <glad/glad.h>
 
-inline auto 
-loadShader(GLenum shader_type, const char* shader_src)
--> GLuint
+class Shader
 {
-    GLint compile_status;
+public:
+    Shader(std::string_view vertex_path, std::string_view fragment_path);
+    ~Shader();
 
-    const auto shader = glCreateShader(shader_type);
-    if(shader==0)
-    {
-        std::cout << "Failed to create shader!\n";
-    }
-    glShaderSource(shader, 1, &shader_src, nullptr);
-    glCompileShader(shader);
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &compile_status);
+    void use() const;
+    auto prog_id() const { return ID; }
 
-    if (!compile_status)
+    template <typename T>
+    void set(const std::string& name, T value)
     {
-        GLint info_len = 0;
-        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &info_len);
-        if (info_len > 1)
+	    if constexpr(std::is_same_v<T, bool> || std::is_same_v<T, int>)
+	    {
+            glUniform1i(glGetUniformLocation(ID, name.data()), static_cast<int>(value));
+	    }
+        else if constexpr (std::is_same_v<T, float>)
         {
-            std::string info_log;
-            info_log.resize(info_len);
-            glGetShaderInfoLog(shader, info_len, nullptr, info_log.data());
-            std::cout << std::format("Failed to compile shader, reason: {}", info_log);
+            glUniform1f(glGetUniformLocation(ID, name.data()), value);
         }
-        glDeleteShader(shader);
-        return 0;
     }
-    return shader;
-}
+
+private:
+    GLuint ID;
+};
 
 template<typename... Shaders>
     requires (std::same_as<std::invoke_result_t<decltype(glCreateShader), GLenum>, Shaders>&&...)
@@ -67,6 +62,5 @@ createProgramWithShaders(Shaders ... shaders) -> GLuint
     }
     // success
     (glDeleteShader(shaders), ...);
-
     return shader_program;
 }
