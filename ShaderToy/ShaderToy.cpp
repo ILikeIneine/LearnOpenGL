@@ -2,7 +2,6 @@
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <chrono>
-#include <filesystem>
 
 #include "Shader.hpp"
 
@@ -15,7 +14,6 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 }
-
 
 int main()
 {
@@ -41,15 +39,13 @@ int main()
         return -1;
     }
 
-    auto triangle_vshader_path = std::filesystem::current_path() / "shaders/triangle.vs";
-    auto triangle_fshader_path = std::filesystem::current_path()/("shaders/triangle.fs");
-    auto axis_vshader_path = std::filesystem::current_path()/("shaders/axis.vs");
-    auto axis_fshader_path = std::filesystem::current_path()/("shaders/axis.fs");
+    const auto triangle_vs = std::filesystem::current_path() / "../../../../ShaderToy/shaders/triangle.vs";
+    const auto triangle_fs = std::filesystem::current_path() / "../../../../ShaderToy/shaders/triangle.fs";
+    const auto axis_vs = std::filesystem::current_path() / "../../../../ShaderToy/shaders/axis.vs";
+    const auto axis_fs = std::filesystem::current_path() / "../../../../ShaderToy/shaders/axis.fs";
 
-
-	Shader triangleShader(triangle_vshader_path, triangle_fshader_path);
-    Shader axisShader(axis_vshader_path, axis_fshader_path);
-
+	Shader triangleShader(triangle_vs, triangle_fs);
+    Shader axisShader(axis_vs, axis_fs);
     constexpr float vertices[] = {
 	    -0.6f, -0.3f, 0.0f, 1.0f, 0.0f, 0.0f,
 	    0.6f, -0.3f, 0.0f, 0.0f, 1.0f, 0.0f,
@@ -85,7 +81,9 @@ int main()
     auto posAttrib = glGetAttribLocation(triangleShader.prog_id(), "aPos");
     auto colorAttrib = glGetAttribLocation(triangleShader.prog_id(), "aColor");
     auto axisPosAttrib = glGetAttribLocation(axisShader.prog_id(), "aPos");
-    // Bind first
+    //***************
+    // Bind triangle
+    //***************
     glBindVertexArray(vao[0]);
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -97,8 +95,9 @@ int main()
     glVertexAttribPointer(colorAttrib, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
     glEnableVertexAttribArray(colorAttrib);
 
-
+    //***********
     // Bind axis
+    //***********
     glBindVertexArray(vao[1]);
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(axis), axis, GL_STATIC_DRAW);
