@@ -66,6 +66,7 @@ public:
     template <typename T>
     void set(const std::string& name, T value)
     {
+        use();
         if constexpr (std::is_same_v<T, bool> || std::is_same_v<T, int>)
         {
             glUniform1i(glGetUniformLocation(ID, name.data()), static_cast<int>(value));

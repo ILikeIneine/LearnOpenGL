@@ -212,7 +212,6 @@ int main()
 		stbi_image_free(data);
 	}
 
-	rectangleShader.use();
 	rectangleShader.set("texture1", 0);
 	rectangleShader.set("texture2", 1);
 
