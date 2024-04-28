@@ -23,4 +23,5 @@ set_target_properties(GLFW PROPERTIES IMPORTED_LOCATION "C:/Users/m01016/Git/glf
 add_subdirectory(GLAD)
 add_subdirectory(HelloTriangle)
 add_subdirectory(ShaderToy)
+add_subdirectory(Texture)
 
