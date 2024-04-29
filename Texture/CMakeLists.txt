@@ -1,7 +1,5 @@
 add_executable(Texture load_texture.cpp)
-
-target_link_libraries(Texture GLFW GLAD)
-
+target_link_libraries(Texture glfw GLAD)
 
 set_target_properties(
              Texture

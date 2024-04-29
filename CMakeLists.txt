@@ -13,15 +13,15 @@ if(MSVC)
 endif()
 
 # library
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/GLFW/include )
-include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/GLAD/include )
-
-add_library(GLFW STATIC IMPORTED)
-set_target_properties(GLFW PROPERTIES IMPORTED_LOCATION "C:/Users/m01016/Git/glfw/out/build/x64-debug/src/glfw3.lib")
+#include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/GLFW/include )
+#include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/GLAD/include )
 
 # sudirectories
-add_subdirectory(GLAD)
+add_subdirectory(third_party/GLAD)
+add_subdirectory(third_party/glfw)
+add_subdirectory(third_party/glm)
 add_subdirectory(HelloTriangle)
 add_subdirectory(ShaderToy)
 add_subdirectory(Texture)
+add_subdirectory(Transform)
 
