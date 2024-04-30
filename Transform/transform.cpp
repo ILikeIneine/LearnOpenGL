@@ -129,8 +129,7 @@ int main()
     auto axisPosAttrib = glGetAttribLocation(axisShader.prog_id(), "aPos");
     auto trianglePosAttrib = glGetAttribLocation(rectangleShader.prog_id(), "aPos");
     auto triangleTexCoordAttrib = glGetAttribLocation(rectangleShader.prog_id(), "aTexCoord");
-
-
+    auto transLoc = glGetUniformLocation(rectangleShader.prog_id(), "transform");
 
     //-------------------------------------
     // Bind axis
@@ -194,6 +193,7 @@ int main()
     rectangleShader.set("Texture", 0);
 
 
+
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
@@ -211,16 +211,24 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture);
 
-        glm::mat4 trans{1.0f};
-        trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-        trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+        // calculating
+        // rotating
+        glm::mat4 trans{ 1.0f };
+        trans = glm::rotate(trans, (float)glfwGetTime(), glm::vec3(1.0f, 0.0f, 0.0f));
+
+        // scaling
+        glm::mat4 trans1{ 1.0f };
+        trans1 = glm::translate(trans1, glm::vec3(-0.5f, 0.5f, 0.0f));
+        trans1 = glm::scale(trans1, glm::vec3(sin(glfwGetTime()), sin(glfwGetTime()), sin(glfwGetTime())));
 
         // Draw object
         rectangleShader.use();
-        auto transLoc = glGetUniformLocation(rectangleShader.prog_id(), "transform");
-        glUniformMatrix4fv(transLoc, 1, GL_FALSE, glm::value_ptr(trans));
-
         glBindVertexArray(vao[1]);
+
+        glUniformMatrix4fv(transLoc, 1, GL_FALSE, glm::value_ptr(trans));
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+
+        glUniformMatrix4fv(transLoc, 1, GL_FALSE, glm::value_ptr(trans1));
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
 
         // Swap frame buffer

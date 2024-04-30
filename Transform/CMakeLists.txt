@@ -1,4 +1,4 @@
-add_executable(Transform transform.cpp "stb_image.h")
+add_executable(Transform transform.cpp )
 
 target_include_directories(Transform PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
 
@@ -8,5 +8,5 @@ set_target_properties(
              Transform
              PROPERTIES
              WIN32_EXECUTABLE 
-             FALSE
+             TRUE
 )

@@ -1,15 +1,21 @@
-﻿#include <filesystem>
+#include <format>
 #include <iostream>
+#include <filesystem>
+
+// third_party
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-
 #include "Shader.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+
 // settings
-constexpr unsigned int SCR_WIDTH = 800;
-constexpr unsigned int SCR_HEIGHT = 800;
+constexpr unsigned int SCR_WIDTH = 1600;
+constexpr unsigned int SCR_HEIGHT = 400;
 
 float mixValue = 0.2f;
 
@@ -48,7 +54,7 @@ int main()
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 #ifdef __APPLE__
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
 
     //-------------------------------------
@@ -76,10 +82,10 @@ int main()
     //-------------------------------------
     // Create shader
     //-------------------------------------
-    const auto triangle_vs = std::filesystem::current_path() / "../../../../Texture/shaders/triangle.vs";
-    const auto triangle_fs = std::filesystem::current_path() / "../../../../Texture/shaders/triangle.fs";
-    const auto axis_vs = std::filesystem::current_path() / "../../../../Texture/shaders/axis.vs";
-    const auto axis_fs = std::filesystem::current_path() / "../../../../Texture/shaders/axis.fs";
+    const auto triangle_vs = std::filesystem::current_path() / "../../../../Transform_3D/shaders/triangle.vs";
+    const auto triangle_fs = std::filesystem::current_path() / "../../../../Transform_3D/shaders/triangle.fs";
+    const auto axis_vs = std::filesystem::current_path() / "../../../../Transform_3D/shaders/axis.vs";
+    const auto axis_fs = std::filesystem::current_path() / "../../../../Transform_3D/shaders/axis.fs";
 
     Shader rectangleShader(triangle_vs, triangle_fs);
     Shader axisShader(axis_vs, axis_fs);
@@ -97,11 +103,48 @@ int main()
     };
 
     float rectangle_vertices[] = {
-        //     ---- pos ----       ---- color ----     - texture -
-        0.5f, 0.5f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, // 右上
-        0.5f, -0.5f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, // 右下
-        -0.5f, -0.5f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, // 左下
-        -0.5f, 0.5f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f // 左上
+        //---- pos ----        - texture -
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
 
     unsigned int rectangle_indices[] = {
@@ -120,10 +163,9 @@ int main()
     glGenVertexArrays(2, vao);
     glGenBuffers(2, vbo);
     glGenBuffers(2, ebo);
-    auto trianglePosAttrib = glGetAttribLocation(rectangleShader.prog_id(), "aPos");
-    auto triangleColorAttrib = glGetAttribLocation(rectangleShader.prog_id(), "aColor");
-    auto triangleTexCoordAttrib = glGetAttribLocation(rectangleShader.prog_id(), "aTexCoord");
     auto axisPosAttrib = glGetAttribLocation(axisShader.prog_id(), "aPos");
+    auto trianglePosAttrib = glGetAttribLocation(rectangleShader.prog_id(), "aPos");
+    auto triangleTexCoordAttrib = glGetAttribLocation(rectangleShader.prog_id(), "aTexCoord");
 
     //-------------------------------------
     // Bind axis
@@ -146,13 +188,9 @@ int main()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
     // Attributes
-    glVertexAttribPointer(trianglePosAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void*>(nullptr));
+    glVertexAttribPointer(trianglePosAttrib, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), static_cast<void*>(nullptr));
     glEnableVertexAttribArray(trianglePosAttrib);
-    glVertexAttribPointer(triangleColorAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          reinterpret_cast<void*>(3 * sizeof(float)));
-    glEnableVertexAttribArray(triangleColorAttrib);
-    glVertexAttribPointer(triangleTexCoordAttrib, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float),
-                          reinterpret_cast<void*>(6 * sizeof(float)));
+    glVertexAttribPointer(triangleTexCoordAttrib, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
     glEnableVertexAttribArray(triangleTexCoordAttrib);
 
 
@@ -173,11 +211,11 @@ int main()
         int width, height, nrChannels;
         //stbi_set_flip_vertically_on_load(true);
         unsigned char* data = stbi_load(R"(C:\Users\m01016\Git\LearnOpenGL\resource\textures\container.jpg)", &width,
-                                        &height, &nrChannels, 0);
+            &height, &nrChannels, 0);
 
         if (data)
         {
-            glTexImage2D(GL_TEXTURE_2D, 0,GL_RGB, width, height, 0,GL_RGB, GL_UNSIGNED_BYTE, data);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
             glGenerateMipmap(GL_TEXTURE_2D);
         }
         else
@@ -203,7 +241,7 @@ int main()
         int width, height, nrChannels;
         //stbi_set_flip_vertically_on_load(true);
         unsigned char* data = stbi_load(R"(C:\Users\m01016\Git\LearnOpenGL\resource\textures\awesomeface.png)", &width,
-                                        &height, &nrChannels, 0);
+            &height, &nrChannels, 0);
 
         if (data)
         {
@@ -220,6 +258,26 @@ int main()
     rectangleShader.set("texture1", 0);
     rectangleShader.set("texture2", 1);
 
+    glEnable(GL_DEPTH_TEST);
+    glm::vec3 cubePositions[] = {
+        glm::vec3(0.0f,  0.0f,  0.0f),
+        glm::vec3(2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3(2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f,  3.0f, -7.5f),
+        glm::vec3(1.3f, -2.0f, -2.5f),
+        glm::vec3(1.5f,  2.0f, -2.5f),
+        glm::vec3(1.5f,  0.2f, -1.5f),
+        glm::vec3(-1.3f,  1.0f, -1.5f)
+    };
+
+    // Non-changed 
+    glm::mat4 view{ 1.0f };
+    view = glm::translate(view, glm::vec3(0.0, 0.0, -3.0));
+    glm::mat4 projection{ 1.0f };
+    projection = glm::perspective(glm::radians(35.0f), (float)(SCR_WIDTH/SCR_HEIGHT), 0.1f, 100.0f);
+
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
@@ -233,18 +291,29 @@ int main()
         glBindVertexArray(vao[0]);
         glDrawElements(GL_LINES, 4, GL_UNSIGNED_INT, nullptr);
 
+
         // Bind textures on corresponding texture units
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
+
         // Draw object
         rectangleShader.use();
-        rectangleShader.set("mixValue", mixValue);
         glBindVertexArray(vao[1]);
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
-
+        rectangleShader.set("mixValue", mixValue);
+        rectangleShader.set("view", view);
+        rectangleShader.set("projection", projection);
+        for (unsigned int i = 0; i < 10; i++)
+        {
+            // calculating
+            glm::mat4 model{ 1.0f };
+            model = glm::translate(model, cubePositions[i]);
+            model = glm::rotate(model, glm::radians((float)glfwGetTime() * 20.0f * (float)(i+1)), glm::vec3(1.0f, 0.3f, 0.5f));
+            rectangleShader.set("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         // Swap frame buffer
         glfwSwapBuffers(window);

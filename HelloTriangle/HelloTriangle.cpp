@@ -1,5 +1,9 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <iostream>
 #include <chrono>
 
@@ -10,11 +14,12 @@ auto vertexShaderSource = R"(
 layout (location = 0) 
 in vec3 aPos; 
 in vec3 color; 
+uniform mat4 transform;
 out vec3 Color;
 void main()
 {
    Color = color;
-   gl_Position = vec4(aPos, 1.0f);
+   gl_Position = transform * vec4(aPos, 1.0f);
 }
 )";
 
@@ -153,6 +158,11 @@ int main()
 
         // wireframe mode
         //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+        auto trans = glm::mat4(1.0f);
+        trans = glm::rotate(trans, -(float)glfwGetTime(), glm::vec3(0.0, 0.0, 1.0));
+        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "transform"), 1, GL_FALSE, value_ptr(trans));
+
         glUseProgram(shaderProgram);
         glBindVertexArray(vao[0]);
         glDrawElements(GL_TRIANGLES, 12, GL_UNSIGNED_INT, nullptr);
