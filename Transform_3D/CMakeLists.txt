@@ -8,5 +8,5 @@ set_target_properties(
              Transform_3D
              PROPERTIES
              WIN32_EXECUTABLE 
-             TRUE
+             False
 )

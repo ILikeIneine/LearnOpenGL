@@ -8,47 +8,36 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include "Shader.hpp"
+#include "shader.hpp"
+#include "camera.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
 // settings
-constexpr unsigned int SCR_WIDTH = 1600;
-constexpr unsigned int SCR_HEIGHT = 800;
+constexpr unsigned int SCR_WIDTH = 800;
+constexpr unsigned int SCR_HEIGHT = 600;
 
 float mixValue = 0.2f;
 
-float fov = 45.0f;
+// Non-changed
+auto cameraPos = glm::vec3(0.0f, 0.0f, 6.0f);
+auto cameraFront = glm::vec3(0.0, 0.0, -1.0);
+auto cameraUp = glm::vec3(0.0, 1.0, 0.0);
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    glViewport(0, 0, width, height);
-}
+float deltaTime = 0.0f; // 当前帧与上一帧的时间差
+float lastFrame = 0.0f; // 上一帧的时间
 
-void processInput(GLFWwindow* window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
+float lastX = SCR_WIDTH / 2.0f;
+float lastY = SCR_HEIGHT / 2.0f;
+bool firstMouse = true;
 
-    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-    {
-        fov += 0.1f; // change this value accordingly (might be too slow or too fast based on system hardware)
+Camera camera{};
 
-    }
-    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-    {
-        fov -= 0.1f; // change this value accordingly (might be too slow or too fast based on system hardware)
-
-    }
-    if(glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS)
-    {
-        
-    }
-    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS)
-    {
-    }
-}
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xpos, double ypos);
+void processInput(GLFWwindow* window);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 int main()
 {
@@ -59,6 +48,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
 
 #ifdef __APPLE__
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
@@ -75,7 +65,10 @@ int main()
         return -1;
     }
     glfwMakeContextCurrent(window);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, scroll_callback);
 
     //----------------------------------------
     // glad: load all OpenGL function pointers
@@ -89,10 +82,10 @@ int main()
     //-------------------------------------
     // Create shader
     //-------------------------------------
-    const auto triangle_vs = std::filesystem::current_path() / "../../../../Transform_3D/shaders/triangle.vs";
-    const auto triangle_fs = std::filesystem::current_path() / "../../../../Transform_3D/shaders/triangle.fs";
-    const auto axis_vs = std::filesystem::current_path() / "../../../../Transform_3D/shaders/axis.vs";
-    const auto axis_fs = std::filesystem::current_path() / "../../../../Transform_3D/shaders/axis.fs";
+    const auto triangle_vs = std::filesystem::current_path() / "../../../../Camera/shaders/triangle.vs";
+    const auto triangle_fs = std::filesystem::current_path() / "../../../../Camera/shaders/triangle.fs";
+    const auto axis_vs = std::filesystem::current_path() / "../../../../Camera/shaders/axis.vs";
+    const auto axis_fs = std::filesystem::current_path() / "../../../../Camera/shaders/axis.fs";
 
     Shader rectangleShader(triangle_vs, triangle_fs);
     Shader axisShader(axis_vs, axis_fs);
@@ -101,15 +94,18 @@ int main()
         -1.0, 0.0, 0.0,
         1.0, 0.0, 0.0,
         0.0, -1.0, 0.0,
-        0.0, 1.0, 0.0
+        0.0, 1.0, 0.0,
+        0.0, 0.0, -1.0,
+        0.0, 0.0, 1.0
     };
 
     constexpr unsigned int axis_indices[] = {
         0, 1,
-        2, 3
+        2, 3,
+        4, 5
     };
 
-    float rectangle_vertices[] = {
+    constexpr float rectangle_vertices[] = {
         //---- pos ----        - texture -
         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
          0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -154,7 +150,7 @@ int main()
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
 
-    unsigned int rectangle_indices[] = {
+    const unsigned int rectangle_indices[] = {
         0, 1, 3, // first triangle
         1, 2, 3 // second triangle
     };
@@ -216,7 +212,6 @@ int main()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     {
         int width, height, nrChannels;
-        //stbi_set_flip_vertically_on_load(true);
         unsigned char* data = stbi_load(R"(C:\Users\m01016\Git\LearnOpenGL\resource\textures\container.jpg)", &width,
             &height, &nrChannels, 0);
 
@@ -232,6 +227,7 @@ int main()
 
         stbi_image_free(data);
     }
+    rectangleShader.set("texture1", 0);
 
     unsigned int texture2;
     glGenTextures(1, &texture2);
@@ -243,10 +239,8 @@ int main()
     // Set texture filtering parameters
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
     {
         int width, height, nrChannels;
-        //stbi_set_flip_vertically_on_load(true);
         unsigned char* data = stbi_load(R"(C:\Users\m01016\Git\LearnOpenGL\resource\textures\awesomeface.png)", &width,
             &height, &nrChannels, 0);
 
@@ -261,8 +255,6 @@ int main()
         }
         stbi_image_free(data);
     }
-
-    rectangleShader.set("texture1", 0);
     rectangleShader.set("texture2", 1);
 
     glEnable(GL_DEPTH_TEST);
@@ -279,14 +271,16 @@ int main()
         glm::vec3(-1.3f,  1.0f, -1.5f)
     };
 
-    // Non-changed 
-
 
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
-        processInput(window);
+        // 咋瓦鲁多
+        float currentFrame = static_cast<float>(glfwGetTime());
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
 
+        processInput(window);
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -295,35 +289,34 @@ int main()
         glBindVertexArray(vao[0]);
         glDrawElements(GL_LINES, 4, GL_UNSIGNED_INT, nullptr);
 
-
+        // Draw object
         // Bind textures on corresponding texture units
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
-
-        // Draw object
         rectangleShader.use();
-        glBindVertexArray(vao[1]);
         rectangleShader.set("mixValue", mixValue);
 
+        // projection
+        glm::mat4 projection{ 1.0f };
+        projection = glm::perspective(glm::radians(camera.Zoom), static_cast<float>(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
+        rectangleShader.set("projection", projection);
+        // view
+        auto view = camera.GetViewMatrix();
+        rectangleShader.set("view", view);
+
+        glBindVertexArray(vao[1]);
         for (unsigned int i = 0; i < 10; i++)
         {
-            // position & rotation
-            glm::mat4 model{ 1.0f };
+            // calculate the model matrix for each object and pass it to shader before drawing
+            glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
             model = glm::translate(model, cubePositions[i]);
-            model = glm::rotate(model, glm::radians((float)glfwGetTime() * 20.0f * (float)(i+1)), glm::vec3(1.0f, 0.3f, 0.5f));
-            // view 
-            glm::mat4 view{ 1.0f };
-            view = glm::translate(view, glm::vec3(0.0, 0.0, -5.0));
-            // projection
-            glm::mat4 projection{ 1.0f };
-            projection = glm::perspective(glm::radians(fov), (float)(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
-
+            float angle = 20.0f * i;
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
             rectangleShader.set("model", model);
-            rectangleShader.set("view", view);
-            rectangleShader.set("projection", projection);
+
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
@@ -337,3 +330,50 @@ int main()
     glfwTerminate();
     return 0;
 }
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
+void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+        camera.ProcessKeyboard(Camera_Movement::FORWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+        camera.ProcessKeyboard(Camera_Movement::BACKWARD, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+        camera.ProcessKeyboard(Camera_Movement::LEFT, deltaTime);
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+        camera.ProcessKeyboard(Camera_Movement::RIGHT, deltaTime);
+}
+
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+    camera.ProcessMouseScroll(static_cast<float>(yoffset));
+}
+
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
+{
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    if (firstMouse)
+    {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+    lastX = xpos;
+    lastY = ypos;
+    
+    camera.ProcessMouseMovement(xoffset, yoffset);
+}
+
