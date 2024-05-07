@@ -15,8 +15,8 @@
 #include "stb_image.h"
 
 // settings
-constexpr unsigned int SCR_WIDTH = 800;
-constexpr unsigned int SCR_HEIGHT = 600;
+constexpr unsigned int SCR_WIDTH = 1600;
+constexpr unsigned int SCR_HEIGHT = 1200;
 
 float mixValue = 0.2f;
 
@@ -176,13 +176,11 @@ int main()
     glBindVertexArray(vao[0]);
     glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(axis_vertices), axis_vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(axis_indices), axis_indices, GL_STATIC_DRAW);
     // Attributes
     glVertexAttribPointer(axisPosAttrib, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), static_cast<void*>(nullptr));
     glEnableVertexAttribArray(axisPosAttrib);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(axis_indices), axis_indices, GL_STATIC_DRAW);
-
 
     //-------------------------------------
     // Bind triangle
@@ -190,15 +188,13 @@ int main()
     glBindVertexArray(vao[1]);
     glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
     glBufferData(GL_ARRAY_BUFFER, sizeof(rectangle_vertices), rectangle_vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
     // Attributes
     glVertexAttribPointer(trianglePosAttrib, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), static_cast<void*>(nullptr));
     glEnableVertexAttribArray(trianglePosAttrib);
     glVertexAttribPointer(triangleTexCoordAttrib, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
     glEnableVertexAttribArray(triangleTexCoordAttrib);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
-
 
 
     //-------------------------------------
@@ -377,7 +373,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn)
 
     lastX = xpos;
     lastY = ypos;
-    
+
     camera.ProcessMouseMovement(xoffset, yoffset);
 }
 

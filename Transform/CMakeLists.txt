@@ -1,11 +1,21 @@
-add_executable(Transform transform.cpp )
+Project(Transform)
 
-target_include_directories(Transform PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
+file(GLOB_RECURSE ${PROJECT_NAME}_HEADER 
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
-target_link_libraries(Transform glfw GLAD glm)
+file(GLOB_RECURSE ${PROJECT_NAME}_SOURCE 
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.c
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+
+add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCE} ${${PROJECT_NAME}_HEADER} )
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
+
+target_link_libraries(${PROJECT_NAME} glfw GLAD glm)
 
 set_target_properties(
-             Transform
+             ${PROJECT_NAME}
              PROPERTIES
              WIN32_EXECUTABLE 
              TRUE

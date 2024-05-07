@@ -1,12 +1,22 @@
-add_executable(Transform_3D transform_3d.cpp)
+Project(Transform_3D)
 
-target_include_directories(Transform_3D PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
+file(GLOB_RECURSE ${PROJECT_NAME}_HEADER 
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
 
-target_link_libraries(Transform_3D glfw GLAD glm)
+file(GLOB_RECURSE ${PROJECT_NAME}_SOURCE 
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.c
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+
+add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCE} ${${PROJECT_NAME}_HEADER} )
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
+
+target_link_libraries(${PROJECT_NAME} glfw GLAD glm)
 
 set_target_properties(
-             Transform_3D
+             ${PROJECT_NAME}
              PROPERTIES
              WIN32_EXECUTABLE 
-             False
+             TRUE
 )

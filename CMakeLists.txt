@@ -12,17 +12,16 @@ if(MSVC)
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 endif()
 
-# library
-#include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/GLFW/include )
-#include_directories( ${CMAKE_CURRENT_SOURCE_DIR}/GLAD/include )
 
 # sudirectories
 add_subdirectory(third_party/GLAD)
 add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/glm)
+add_subdirectory(third_party/ASSIMP)
 add_subdirectory(HelloTriangle)
 add_subdirectory(ShaderToy)
 add_subdirectory(Texture)
 add_subdirectory(Transform)
 add_subdirectory(Transform_3D)
 add_subdirectory(Camera)
+add_subdirectory(Model)

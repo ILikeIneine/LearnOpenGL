@@ -1,12 +1,22 @@
-add_executable(HelloTrangle HelloTriangle.cpp)
+Project(HelloTriangle)
 
-target_link_libraries(HelloTrangle glfw GLAD glm-header-only)
-target_include_directories(HelloTrangle PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
+file(GLOB_RECURSE ${PROJECT_NAME}_HEADER 
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.h
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.hpp)
+
+file(GLOB_RECURSE ${PROJECT_NAME}_SOURCE 
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.c
+                ${CMAKE_CURRENT_SOURCE_DIR}/*.cpp)
+
+add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCE} ${${PROJECT_NAME}_HEADER} )
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/third_party)
+
+target_link_libraries(${PROJECT_NAME} glfw GLAD glm)
 
 set_target_properties(
-             HelloTrangle
+             ${PROJECT_NAME}
              PROPERTIES
              WIN32_EXECUTABLE 
              TRUE
 )
-
