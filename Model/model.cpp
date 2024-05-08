@@ -10,7 +10,7 @@
 #include <GLFW/glfw3.h>
 #include "shader.hpp"
 #include "camera.hpp"
-
+#include "model.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -32,7 +32,7 @@ float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
-Camera camera{};
+Camera camera{ {0.0, 10.0, 20.0} };
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -65,10 +65,12 @@ int main()
         return -1;
     }
     glfwMakeContextCurrent(window);
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, scroll_callback);
+
+    // capture our mouse
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     //----------------------------------------
     // glad: load all OpenGL function pointers
@@ -79,197 +81,25 @@ int main()
         return -1;
     }
 
+
+    // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
+    stbi_set_flip_vertically_on_load(false);
+
+    // configure global opengl state
+    // -----------------------------
+    glEnable(GL_DEPTH_TEST);
+
     //-------------------------------------
     // Create shader
     //-------------------------------------
-    const auto triangle_vs = std::filesystem::current_path() / "../../../../Camera/shaders/triangle.vs";
-    const auto triangle_fs = std::filesystem::current_path() / "../../../../Camera/shaders/triangle.fs";
-    const auto axis_vs = std::filesystem::current_path() / "../../../../Camera/shaders/axis.vs";
-    const auto axis_fs = std::filesystem::current_path() / "../../../../Camera/shaders/axis.fs";
+    const auto model_vs = std::filesystem::current_path() / "../../../../Model/shaders/model.vs";
+    const auto model_fs = std::filesystem::current_path() / "../../../../Model/shaders/model.fs";
 
-    Shader rectangleShader(triangle_vs, triangle_fs);
-    Shader axisShader(axis_vs, axis_fs);
+    Shader modelShader(model_vs, model_fs);
 
-    constexpr float axis_vertices[] = {
-        -1.0, 0.0, 0.0,
-        1.0, 0.0, 0.0,
-        0.0, -1.0, 0.0,
-        0.0, 1.0, 0.0,
-        0.0, 0.0, -1.0,
-        0.0, 0.0, 1.0
-    };
+    const auto model_path = std::filesystem::current_path() / "../../../../resource/nanosuit/nanosuit.obj";
 
-    constexpr unsigned int axis_indices[] = {
-        0, 1,
-        2, 3,
-        4, 5
-    };
-
-    constexpr float rectangle_vertices[] = {
-        //---- pos ----        - texture -
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-
-    const unsigned int rectangle_indices[] = {
-        0, 1, 3, // first triangle
-        1, 2, 3 // second triangle
-    };
-
-
-    //-------------------------------------------------------------------------
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), 
-    // and then configure vertex attributes(s).
-    //-------------------------------------------------------------------------
-    unsigned int vao[2];
-    unsigned int vbo[2];
-    unsigned int ebo[2];
-    glGenVertexArrays(2, vao);
-    glGenBuffers(2, vbo);
-    glGenBuffers(2, ebo);
-    auto axisPosAttrib = glGetAttribLocation(axisShader.prog_id(), "aPos");
-    auto trianglePosAttrib = glGetAttribLocation(rectangleShader.prog_id(), "aPos");
-    auto triangleTexCoordAttrib = glGetAttribLocation(rectangleShader.prog_id(), "aTexCoord");
-
-    //-------------------------------------
-    // Bind axis
-    //-------------------------------------
-    glBindVertexArray(vao[0]);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(axis_vertices), axis_vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[0]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(axis_indices), axis_indices, GL_STATIC_DRAW);
-    // Attributes
-    glVertexAttribPointer(axisPosAttrib, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), static_cast<void*>(nullptr));
-    glEnableVertexAttribArray(axisPosAttrib);
-
-    //-------------------------------------
-    // Bind triangle
-    //-------------------------------------
-    glBindVertexArray(vao[1]);
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(rectangle_vertices), rectangle_vertices, GL_STATIC_DRAW);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo[1]);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rectangle_indices), rectangle_indices, GL_STATIC_DRAW);
-    // Attributes
-    glVertexAttribPointer(trianglePosAttrib, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), static_cast<void*>(nullptr));
-    glEnableVertexAttribArray(trianglePosAttrib);
-    glVertexAttribPointer(triangleTexCoordAttrib, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
-    glEnableVertexAttribArray(triangleTexCoordAttrib);
-
-
-    //-------------------------------------
-    // load and create a texture
-    //-------------------------------------
-    unsigned int texture1;
-    glGenTextures(1, &texture1);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    // Set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    // Set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    {
-        int width, height, nrChannels;
-        unsigned char* data = stbi_load(R"(C:\Users\m01016\Git\LearnOpenGL\resource\textures\container.jpg)", &width,
-            &height, &nrChannels, 0);
-
-        if (data)
-        {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-            glGenerateMipmap(GL_TEXTURE_2D);
-        }
-        else
-        {
-            std::cout << "Failed to load texture\n";
-        }
-
-        stbi_image_free(data);
-    }
-    rectangleShader.set("texture1", 0);
-
-    unsigned int texture2;
-    glGenTextures(1, &texture2);
-    glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, texture2);
-    // Set the texture wrapping parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    // Set texture filtering parameters
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    {
-        int width, height, nrChannels;
-        unsigned char* data = stbi_load(R"(C:\Users\m01016\Git\LearnOpenGL\resource\textures\awesomeface.png)", &width,
-            &height, &nrChannels, 0);
-
-        if (data)
-        {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-            glGenerateMipmap(GL_TEXTURE_2D);
-        }
-        else
-        {
-            std::cout << "Failed to load texture\n";
-        }
-        stbi_image_free(data);
-    }
-    rectangleShader.set("texture2", 1);
-
-    glEnable(GL_DEPTH_TEST);
-    glm::vec3 cubePositions[] = {
-        glm::vec3(0.0f,  0.0f,  0.0f),
-        glm::vec3(2.0f,  5.0f, -15.0f),
-        glm::vec3(-1.5f, -2.2f, -2.5f),
-        glm::vec3(-3.8f, -2.0f, -12.3f),
-        glm::vec3(2.4f, -0.4f, -3.5f),
-        glm::vec3(-1.7f,  3.0f, -7.5f),
-        glm::vec3(1.3f, -2.0f, -2.5f),
-        glm::vec3(1.5f,  2.0f, -2.5f),
-        glm::vec3(1.5f,  0.2f, -1.5f),
-        glm::vec3(-1.3f,  1.0f, -1.5f)
-    };
+    Model modelInstance{ model_path.generic_string() };
 
 
     // Main loop
@@ -284,48 +114,29 @@ int main()
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Draw axis
-        axisShader.use();
-        glBindVertexArray(vao[0]);
-        glDrawElements(GL_LINES, 4, GL_UNSIGNED_INT, nullptr);
 
-        // Draw object
-        // Bind textures on corresponding texture units
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
 
-        rectangleShader.use();
-        rectangleShader.set("mixValue", mixValue);
+        modelShader.use();
 
-        // projection
-        glm::mat4 projection{ 1.0f };
-        projection = glm::perspective(glm::radians(camera.Zoom), static_cast<float>(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
-        rectangleShader.set("projection", projection);
-        // view
+        // view/projection transformations
+        auto projection = glm::perspective(glm::radians(camera.Zoom), static_cast<float>(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
         auto view = camera.GetViewMatrix();
-        rectangleShader.set("view", view);
+        modelShader.set("view", view);
+        modelShader.set("projection", projection);
 
-        glBindVertexArray(vao[1]);
-        for (unsigned int i = 0; i < 10; i++)
-        {
-            // calculate the model matrix for each object and pass it to shader before drawing
-            glm::mat4 model = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-            model = glm::translate(model, cubePositions[i]);
-            float angle = 20.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            rectangleShader.set("model", model);
+        // render model
+        auto model = glm::mat4{ 1.0f };
+        model = glm::translate(model, glm::vec3{ 0.0f, 0.0f, 0.0f });
+        model = glm::scale(model, glm::vec3{ 1.0f, 1.0f, 1.0f });
+        modelShader.set("model", model);
+        modelInstance.Draw(modelShader);
 
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+
 
         // Swap frame buffer
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-    glDeleteVertexArrays(2, vao);
-    glDeleteBuffers(2, vbo);
 
     glfwTerminate();
     return 0;
