@@ -14,8 +14,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#define PROJECT_NAME "StencilTest"
-#define SHADER_NAME "stencil_test"
+#define PROJECT_NAME "Blending"
+#define SHADER_NAME "blending"
 
 // settings
 constexpr unsigned int SCR_WIDTH = 1600;
@@ -24,9 +24,6 @@ constexpr unsigned int SCR_HEIGHT = 1600;
 float mixValue = 0.2f;
 
 // Non-changed
-auto cameraPos = glm::vec3(0.0f, 0.0f, 6.0f);
-auto cameraFront = glm::vec3(0.0, 0.0, -1.0);
-auto cameraUp = glm::vec3(0.0, 1.0, 0.0);
 
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
@@ -85,24 +82,25 @@ int main()
         return -1;
     }
 
-    // ------------------------------------------------------------------------------
+
     // tell stb_image.h to flip loaded texture's on the y-axis (before loading model).
-    // ------------------------------------------------------------------------------
     stbi_set_flip_vertically_on_load(false);
 
-
+    // configure global opengl state
+    // -----------------------------
+    glEnable(GL_DEPTH_TEST);
+    glDepthFunc( GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
+    glEnable(GL_BLEND);
 
     //-------------------------------------
     // Create shader
     //-------------------------------------
     const auto model_vs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" SHADER_NAME ".vs";
     const auto model_fs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" SHADER_NAME ".fs";
-    const auto outline_fs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/outline.fs";
 
     Shader modelShader(model_vs, model_fs);
-    Shader outlineShader(model_vs, outline_fs);
 
-    // ------------------------------------------------------------------
+
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float cubeVertices[] = {
@@ -161,6 +159,22 @@ int main()
         -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
          5.0f, -0.5f, -5.0f,  2.0f, 2.0f
     };
+    float vegetationVertices[] = {
+        // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
+        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+        0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
+        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+
+        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+        1.0f,  0.5f,  0.0f,  1.0f,  0.0f
+    };
+    std::vector<glm::vec3> vegetationPos;
+    vegetationPos.emplace_back(-1.5, 0.0, -0.48);
+    vegetationPos.emplace_back(1.5f, 0.0f, 0.51f);
+    vegetationPos.emplace_back(0.0f, 0.0f, 0.7f);
+    vegetationPos.emplace_back(-0.3f, 0.0f, -2.3f);
+    vegetationPos.emplace_back(0.5f, 0.0f, -0.6f);
 
     // cube VAO
     unsigned int cubeVAO, cubeVBO;
@@ -186,31 +200,28 @@ int main()
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
+    // Grass VAO
+    unsigned int GrassVAO, GrassVBO;
+    glGenVertexArrays(1, &GrassVAO);
+    glGenBuffers(1, &GrassVBO);
+    glBindVertexArray(GrassVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, GrassVAO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vegetationVertices), &vegetationVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBindVertexArray(0);
 
-    // -------------
     // load textures
-    // -------------
+// -------------
     unsigned int cubeTexture = loadTexture(std::filesystem::current_path() / "../../../../resource/textures/marble.jpg");
     unsigned int floorTexture = loadTexture(std::filesystem::current_path() / "../../../../resource/textures/metal.png");
-
+    unsigned int grassTexture = loadTexture(std::filesystem::current_path() / "../../../../resource/textures/grass.png");
     modelShader.use();
     modelShader.set("texture1", 0);
 
-
-    // -----------------------------
-    // configure global opengl state
-    // -----------------------------
-    glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
-
-    glEnable(GL_STENCIL_TEST);
-    glStencilOp(GL_KEEP, GL_REPLACE, GL_REPLACE);
-    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-
-
-    // -------------
     // Main loop
-    // -------------
     while (!glfwWindowShouldClose(window))
     {
         // 咋瓦鲁多
@@ -222,92 +233,63 @@ int main()
         processInput(window);
 
         // render
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+        modelShader.use();
 
         auto model = glm::mat4{1.0f};
         auto view = camera.GetViewMatrix();
-        auto projection =
+        auto projection = 
             glm::perspective(glm::radians(camera.Zoom), static_cast<float>(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
-        float scale = 1.1f;
-
-        outlineShader.use();
-        outlineShader.set("view", view);
-        outlineShader.set("projection", projection);
-
-        modelShader.use();
         modelShader.set("view", view);
         modelShader.set("projection", projection);
 
-        glStencilMask(0x00);
+        // cubes
+        glBindVertexArray(cubeVAO);
+        glActiveTexture(cubeTexture);
+        glBindTexture(GL_TEXTURE_2D, cubeTexture);
+        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        modelShader.set("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        modelShader.set("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
         // floor
         glBindVertexArray(planeVAO);
         glBindTexture(GL_TEXTURE_2D, floorTexture);
         modelShader.set("model", glm::mat4(1.0f));
         glDrawArrays(GL_TRIANGLES, 0, 6);
         glBindVertexArray(0);
+        // grass
+        glBindVertexArray(GrassVAO);
+        glBindTexture(GL_TEXTURE_2D, grassTexture);
+        for(auto&& pos : vegetationPos)
+        {
+            model = glm::mat4{ 1.0f };
+            auto face_dir = camera.Right;
+            auto lb = pos - face_dir * 0.5f;
+            auto rb = pos + face_dir * 0.5f;
 
-        // 1st. render pass, draw objects as normal, writing to the stencil buffer
-        // --------------------------------------------------------------------
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glStencilMask(0xFF);
-        // first cubes
-        glBindVertexArray(cubeVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, cubeTexture);
-        model = glm::mat4{ 1.0 };
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-        modelShader.set("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+            glm::vec3  lt = lb + glm::vec3(0,1.0, 0);
+            glm::vec3  rt = rb + glm::vec3(0, 1.0, 0);
 
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
 
-        // first outline
-        model = glm::mat4{ 1.0 };
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-        model = glm::scale(model, glm::vec3(scale, scale, scale)); // scale
-        outlineShader.set("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        // 2nd. render pass: now draw slightly scaled versions of the objects, this time disabling stencil writing.
-        // Because the stencil buffer is now filled with several 1s. The parts of the buffer that are 1 are not drawn, thus only drawing 
-        // the objects' size differences, making it look like borders.
-        // -----------------------------------------------------------------------------------------------------------------------------
-        glStencilMask(0xFF);
-        glClear(GL_STENCIL_BUFFER_BIT); // remind!!!!!!
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-
-        // second cube
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        modelShader.set("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
-
-        // second outline
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(scale, scale, scale)); // scale
-        outlineShader.set("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+            model = glm::translate(model, pos);
+            modelShader.set("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
 
         glBindVertexArray(0);
-        glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+
 
 
         // Swap frame buffer
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
-
-    glDeleteVertexArrays(1, &cubeVAO);
-    glDeleteVertexArrays(1, &planeVAO);
-    glDeleteBuffers(1, &cubeVBO);
-    glDeleteBuffers(1, &planeVBO);
 
     glfwTerminate();
     return 0;
@@ -381,8 +363,8 @@ unsigned int loadTexture(const std::filesystem::path& path)
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
