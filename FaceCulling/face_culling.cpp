@@ -1,6 +1,7 @@
 #include <format>
 #include <iostream>
 #include <filesystem>
+#include <map>
 
 // third_party
 #include <glm/glm.hpp>
@@ -14,8 +15,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#define PROJECT_NAME "DepthTest"
-#define SHADER_NAME "depth_test"
+#define PROJECT_NAME "FaceCulling"
+#define SHADER_NAME "face_culling"
 
 // settings
 constexpr unsigned int SCR_WIDTH = 1600;
@@ -24,9 +25,6 @@ constexpr unsigned int SCR_HEIGHT = 1600;
 float mixValue = 0.2f;
 
 // Non-changed
-auto cameraPos = glm::vec3(0.0f, 0.0f, 6.0f);
-auto cameraFront = glm::vec3(0.0, 0.0, -1.0);
-auto cameraUp = glm::vec3(0.0, 1.0, 0.0);
 
 float deltaTime = 0.0f; // 当前帧与上一帧的时间差
 float lastFrame = 0.0f; // 上一帧的时间
@@ -93,65 +91,67 @@ int main()
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
     glDepthFunc( GL_LESS); // always pass the depth test (same effect as glDisable(GL_DEPTH_TEST))
+    // blending
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    glFrontFace(GL_CCW);
 
     //-------------------------------------
     // Create shader
     //-------------------------------------
     const auto model_vs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" SHADER_NAME ".vs";
     const auto model_fs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" SHADER_NAME ".fs";
-    //const auto model_fs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/visiable_depth.fs";
 
     Shader modelShader(model_vs, model_fs);
 
-    const auto model_path = std::filesystem::current_path() / "../../../../resource/nanosuit/nanosuit.obj";
-
-    // Model modelInstance{ model_path.generic_string() };
 
     // set up vertex data (and buffer(s)) and configure vertex attributes
     // ------------------------------------------------------------------
     float cubeVertices[] = {
-        // positions          // texture Coords
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+        // Back face
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // Bottom-left
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f, // bottom-right         
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f, // bottom-left
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // top-left
+        // Front face
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-left
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // bottom-right
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // top-right
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f, // top-right
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f, // top-left
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-left
+        // Left face
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-right
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-left
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-left
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-left
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-right
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-right
+        // Right face
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-left
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-right
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right         
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // bottom-right
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // top-left
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-left     
+         // Bottom face
+         -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // top-right
+          0.5f, -0.5f, -0.5f,  1.0f, 1.0f, // top-left
+          0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // bottom-left
+          0.5f, -0.5f,  0.5f,  1.0f, 0.0f, // bottom-left
+         -0.5f, -0.5f,  0.5f,  0.0f, 0.0f, // bottom-right
+         -0.5f, -0.5f, -0.5f,  0.0f, 1.0f, // top-right
+         // Top face
+         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // top-left
+          0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // bottom-right
+          0.5f,  0.5f, -0.5f,  1.0f, 1.0f, // top-right     
+          0.5f,  0.5f,  0.5f,  1.0f, 0.0f, // bottom-right
+         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f, // top-left
+         -0.5f,  0.5f,  0.5f,  0.0f, 0.0f  // bottom-left        
     };
     float planeVertices[] = {
         // positions
@@ -165,6 +165,22 @@ int main()
         -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
          5.0f, -0.5f, -5.0f,  2.0f, 2.0f
     };
+    float vegetationVertices[] = {
+        // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)
+        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+        0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
+        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+
+        0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+        1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+        1.0f,  0.5f,  0.0f,  1.0f,  0.0f
+    };
+    std::vector<glm::vec3> windows;
+    windows.emplace_back(-1.5, 0.0, -0.48);
+    windows.emplace_back(1.5f, 0.0f, 0.51f);
+    windows.emplace_back(0.0f, 0.0f, 0.7f);
+    windows.emplace_back(-0.3f, 0.0f, -2.3f);
+    windows.emplace_back(0.5f, 0.0f, -0.6f);
 
     // cube VAO
     unsigned int cubeVAO, cubeVBO;
@@ -190,15 +206,28 @@ int main()
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
+    // Grass VAO
+    unsigned int GrassVAO, GrassVBO;
+    glGenVertexArrays(1, &GrassVAO);
+    glGenBuffers(1, &GrassVBO);
+    glBindVertexArray(GrassVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, GrassVAO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vegetationVertices), &vegetationVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBindVertexArray(0);
 
     // load textures
 // -------------
     unsigned int cubeTexture = loadTexture(std::filesystem::current_path() / "../../../../resource/textures/marble.jpg");
     unsigned int floorTexture = loadTexture(std::filesystem::current_path() / "../../../../resource/textures/metal.png");
-
+    unsigned int grassTexture = loadTexture(std::filesystem::current_path() / "../../../../resource/textures/window.png");
     modelShader.use();
     modelShader.set("texture1", 0);
 
+    std::map<float, glm::vec3> sorted;
     // Main loop
     while (!glfwWindowShouldClose(window))
     {
@@ -226,7 +255,7 @@ int main()
 
         // cubes
         glBindVertexArray(cubeVAO);
-        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(cubeTexture);
         glBindTexture(GL_TEXTURE_2D, cubeTexture);
         model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
         modelShader.set("model", model);
@@ -240,8 +269,26 @@ int main()
         glBindTexture(GL_TEXTURE_2D, floorTexture);
         modelShader.set("model", glm::mat4(1.0f));
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
+        // grass
+        glBindVertexArray(GrassVAO);
+        glBindTexture(GL_TEXTURE_2D, grassTexture);
 
+        sorted.clear();
+        for(auto&& pos : windows)
+        {
+            float distance = glm::length(camera.Position - pos);
+            sorted[distance] = pos;
+        }
+        for(auto iter = sorted.rbegin(); iter != sorted.rend(); ++iter)
+        {
+            model = glm::mat4{ 1.0f };
+            model = glm::translate(model, iter->second);
+            modelShader.set("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+
+
+        glBindVertexArray(0);
 
         // Swap frame buffer
         glfwSwapBuffers(window);
@@ -320,8 +367,8 @@ unsigned int loadTexture(const std::filesystem::path& path)
         glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
