@@ -165,13 +165,13 @@ int main()
     float quadVertices[] = {
         // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
         // positions   // texCoords
-        -1.0f,  1.0f,  0.0f, 1.0f,
-        -1.0f, -1.0f,  0.0f, 0.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
+        -0.3f,  1.3f,  0.0f, 1.0f,
+        -0.3f,  0.7f,  0.0f, 0.0f,
+         0.3f,  0.7f,  1.0f, 0.0f,
 
-        -1.0f,  1.0f,  0.0f, 1.0f,
-         1.0f, -1.0f,  1.0f, 0.0f,
-         1.0f,  1.0f,  1.0f, 1.0f
+        -0.3f,  1.3f,  0.0f, 1.0f,
+         0.3f,  0.7f,  1.0f, 0.0f,
+         0.3f,  1.3f,  1.0f, 1.0f   
     };
 
     // cube VAO
@@ -230,7 +230,7 @@ int main()
     unsigned int textureColorbuffer;
     glGenTextures(1, &textureColorbuffer);
     glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
@@ -238,7 +238,7 @@ int main()
     unsigned int rbo;
     glGenRenderbuffers(1, &rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH/2, SCR_HEIGHT/2); // use a single renderbuffer object for both a depth AND stencil buffer.
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
     {
@@ -252,6 +252,9 @@ int main()
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     // Main loop
+    auto model = glm::mat4{ 1.0 };
+    auto view = glm::mat4{ 1.0 };
+    auto projection = glm::mat4{ 1.0 };
     while (!glfwWindowShouldClose(window))
     {
         // Õ¦ÍßÂ³¶à
@@ -261,54 +264,82 @@ int main()
 
         // input
         processInput(window);
+        // render frame buffer
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
+            glEnable(GL_DEPTH_TEST);
+            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            modelShader.use();
 
-        // render
-        // ------
-        // bind to frame buffer and draw scene as we normally would to color texture 
-        glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
-        glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
+            camera.Yaw += 180.0f;
+            camera.ProcessMouseMovement(0, 0, true);
+            view = camera.GetViewMatrix();
+            modelShader.set("view", view);
+            camera.Yaw -= 180.0f; // reset it back to its original orientation
+            camera.ProcessMouseMovement(0, 0, true);
 
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            projection = glm::perspective(glm::radians(camera.Zoom), static_cast<float>(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
+            modelShader.set("projection", projection);
+            // cubes
+            glBindVertexArray(cubeVAO);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, cubeTexture);
+            model = glm::mat4{ 1.0f };
+            model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+            modelShader.set("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+            modelShader.set("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            // floor
+            glBindVertexArray(planeVAO);
+            glBindTexture(GL_TEXTURE_2D, floorTexture);
+            modelShader.set("model", glm::mat4(1.0f));
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glBindVertexArray(0);
+        }
+        // render real world
+        {
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        modelShader.use();
-        auto model = glm::mat4{1.0f};
-        auto view = camera.GetViewMatrix();
-        auto projection = 
-            glm::perspective(glm::radians(camera.Zoom), static_cast<float>(SCR_WIDTH / SCR_HEIGHT), 0.1f, 100.0f);
-        modelShader.set("view", view);
-        modelShader.set("projection", projection);
-        // cubes
-        glBindVertexArray(cubeVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, cubeTexture);
-        model = glm::mat4{ 1.0f };
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-        modelShader.set("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        modelShader.set("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        // floor
-        glBindVertexArray(planeVAO);
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
-        modelShader.set("model", glm::mat4(1.0f));
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
+            glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
-        // clear all relevant buffers
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-        glClear(GL_COLOR_BUFFER_BIT);
+            model = glm::mat4(1.0f);
+            view = camera.GetViewMatrix();
+            modelShader.set("view", view);
 
+            // cubes
+            glBindVertexArray(cubeVAO);
+            glActiveTexture(GL_TEXTURE0);
+            glBindTexture(GL_TEXTURE_2D, cubeTexture);
+            model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+            modelShader.set("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+            modelShader.set("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+            // floor
+            glBindVertexArray(planeVAO);
+            glBindTexture(GL_TEXTURE_2D, floorTexture);
+            modelShader.set("model", glm::mat4(1.0f));
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+            glBindVertexArray(0);
+        }
+        {
+            glDisable(GL_DEPTH_TEST); 
+            // glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+            // glClear(GL_COLOR_BUFFER_BIT);
+            screenShader.use();
+            glActiveTexture(GL_TEXTURE0);
+            glBindVertexArray(quadVAO);
+            glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
 
-        screenShader.use();
-        glBindVertexArray(quadVAO);
-        glBindTexture(GL_TEXTURE_2D, textureColorbuffer);	// use the color attachment texture as the texture of the quad plane
-        glDrawArrays(GL_TRIANGLES, 0, 6);
 
         // Swap frame buffer
         glfwSwapBuffers(window);

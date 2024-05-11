@@ -28,7 +28,7 @@ public:
     glm::vec3 Right;
     glm::vec3 WorldUp;
 
-    //euler angles
+    // euler angles
     float Yaw;
     float Pitch;
 
