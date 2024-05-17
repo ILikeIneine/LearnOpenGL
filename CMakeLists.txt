@@ -34,3 +34,4 @@ add_subdirectory(FaceCulling)
 add_subdirectory(FrameBuffer)
 
 add_subdirectory(Colors)
+add_subdirectory(BasicLighting)
