@@ -14,7 +14,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#define PROJECT_NAME "BasicLighting"
+#define PROJECT_NAME "Material"
 
 // settings
 constexpr unsigned int SCR_WIDTH = 1600;
@@ -86,8 +86,8 @@ int main()
     //-------------------------------------
     // Create shader
     //-------------------------------------
-    Shader lightingShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/gouraud.vs", 
-                           std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/gouraud.fs");
+    Shader lightingShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/material.vs", 
+                           std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/material.fs");
     Shader lightCubeShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/light_cube.vs",
                       std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/light_cube.fs");
     Shader axisShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.vs",
@@ -203,10 +203,19 @@ int main()
     glEnable(GL_DEPTH_TEST);
     glLineWidth(5.0f);
 
-    // lighting
-    glm::vec3 lightPos(1.2f, 1.0f, 0.0f);
-    glm::vec3 lightColor{ 0.0f, 1.0f, 1.0f };
-    glm::vec3 objectColor{ 1.0f, 0.5f, 0.31f };
+    // material
+    glm::vec3 lightPos(1.2f, 1.0f, 3.0f);
+    lightingShader.set("material.ambient", glm::vec3{ 0.24725f, 0.1995f, 0.0745f });
+    lightingShader.set("material.diffuse", glm::vec3{ 0.75164f, 0.60648f, 0.22648f });
+    lightingShader.set("material.specular", glm::vec3{ 0.628281f, 0.555802f, 0.366065f });
+    lightingShader.set("material.shininess", 0.4f);
+
+    // light
+    glm::vec3 lightColor {1.0 };
+    lightingShader.set("light.position", lightPos);
+    lightingShader.set("light.ambient", glm::vec3{ 1.0f, 1.0f, 1.0f });
+    lightingShader.set("light.diffuse", glm::vec3{ 1.0f, 1.0f, 1.0f });
+    lightingShader.set("light.specular", glm::vec3{ 1.0f, 1.0f,1.0f });
 
     // Main loop
     while (!glfwWindowShouldClose(window))
@@ -220,8 +229,7 @@ int main()
 
         glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        lightPos.x = static_cast<float>(sin( glfwGetTime())) * 2.0f;
-        lightPos.z = static_cast<float>(cos( glfwGetTime())) * 2.0f;
+
 
         // Draw 
         {
@@ -243,11 +251,9 @@ int main()
             auto model = glm::mat4(1.0f);
 
             lightingShader.use();
-            lightingShader.set("objectColor", objectColor);
-            lightingShader.set("lightColor", lightColor);
             lightingShader.set("lightPos", lightPos);
-            lightingShader.set("projection", projection);
             lightingShader.set("viewPos", camera.Position);
+            lightingShader.set("projection", projection);
             lightingShader.set("view", view);
             lightingShader.set("model", model);
 
@@ -267,6 +273,7 @@ int main()
             lightCubeShader.set("projection", projection);
             lightCubeShader.set("view", view);
             lightCubeShader.set("model", model);
+            lightCubeShader.set("cubeColor", lightColor);
 
             glBindVertexArray(vao[1]);
             glDrawArrays(GL_TRIANGLES, 0, 36);

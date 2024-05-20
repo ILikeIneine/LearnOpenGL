@@ -35,3 +35,5 @@ add_subdirectory(FrameBuffer)
 
 add_subdirectory(Colors)
 add_subdirectory(BasicLighting)
+add_subdirectory(Material)
+add_subdirectory(LightingMaps)
