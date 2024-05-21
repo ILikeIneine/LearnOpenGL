@@ -14,10 +14,13 @@ endif()
 
 
 # sudirectories
+add_subdirectory(Common)
+
 add_subdirectory(third_party/GLAD)
 add_subdirectory(third_party/glfw)
 add_subdirectory(third_party/glm)
 add_subdirectory(third_party/ASSIMP)
+
 add_subdirectory(HelloTriangle)
 add_subdirectory(ShaderToy)
 add_subdirectory(Texture)
@@ -37,3 +40,6 @@ add_subdirectory(Colors)
 add_subdirectory(BasicLighting)
 add_subdirectory(Material)
 add_subdirectory(LightingMaps)
+add_subdirectory(LightingCasters)
+add_subdirectory(LightSpot)
+add_subdirectory(MultipleLight)
