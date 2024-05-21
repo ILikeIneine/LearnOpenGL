@@ -1,4 +1,4 @@
-Project(HelloTriangle)
+Project(LightSpot)
 
 file(GLOB_RECURSE ${PROJECT_NAME}_HEADER 
                 ${CMAKE_CURRENT_SOURCE_DIR}/*.h
