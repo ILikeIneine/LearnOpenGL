@@ -43,3 +43,5 @@ add_subdirectory(LightingMaps)
 add_subdirectory(LightingCasters)
 add_subdirectory(LightSpot)
 add_subdirectory(MultipleLight)
+
+add_subdirectory(Cubemaps)
