@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <filesystem>
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
@@ -27,9 +28,9 @@ public:
     bool gammaCorrection;
 
     // constructor, expects a filepath to a 3D model.
-    Model(const std::string& path, bool gamma = false) : gammaCorrection(gamma)
+    Model(const std::filesystem::path& path, bool gamma = false) : gammaCorrection(gamma)
     {
-        loadModel(path);
+        loadModel(path.generic_string());
     }
 
     // draws the model, and thus all its meshes
