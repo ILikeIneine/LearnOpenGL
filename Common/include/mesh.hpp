@@ -53,7 +53,6 @@ public:
         unsigned int heightNr = 1;
         for (unsigned int i = 0; i < textures.size(); i++)
         {
-            glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
             // retrieve texture number (the N in diffuse_textureN)
             std::string number;
             std::string name = textures[i].type;
@@ -63,10 +62,12 @@ public:
                 number = std::to_string(specularNr++); // transfer unsigned int to string
             else if (name == "texture_normal")
                 number = std::to_string(normalNr++); // transfer unsigned int to string
-            else if (name == "texture_height")
+            else if (name == "texture_reflection")
                 number = std::to_string(heightNr++); // transfer unsigned int to string
 
-            auto uniform_name = name + number;
+            auto uniform_name = "material." + name + number;
+
+            glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
             shader.set(uniform_name, i);
             glBindTexture(GL_TEXTURE_2D, textures[i].id);
         }

@@ -95,7 +95,7 @@ int main()
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_CULL_FACE);
-    glCullFace(GL_FRONT);
+    glCullFace(GL_BACK);
     glFrontFace(GL_CCW);
 
     //-------------------------------------
@@ -157,13 +157,13 @@ int main()
         // positions
         // texture Coords (note we set these higher than 1 (together with GL_REPEAT as texture wrapping mode).
         // this will cause the floor texture to repeat)
-         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-        -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
-        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+    -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+    -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
+     5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
 
-         5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-        -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-         5.0f, -0.5f, -5.0f,  2.0f, 2.0f
+     5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+     5.0f, -0.5f, -5.0f,  2.0f, 2.0f,
+    -5.0f, -0.5f, -5.0f,  0.0f, 2.0f
     };
     float vegetationVertices[] = {
         // positions         // texture Coords (swapped y coordinates because texture is flipped upside down)

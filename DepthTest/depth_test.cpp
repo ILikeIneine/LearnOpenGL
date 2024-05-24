@@ -35,7 +35,7 @@ float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
-Camera camera{ {0.0, 15.0, 0.0} };
+Camera camera{ {0.0, 1.0, 0.0} };
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
