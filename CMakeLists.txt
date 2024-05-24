@@ -46,3 +46,5 @@ add_subdirectory(MultipleLight)
 
 add_subdirectory(Cubemaps)
 add_subdirectory(Cubemaps_refract)
+
+add_subdirectory(AdvancedGLSL)
