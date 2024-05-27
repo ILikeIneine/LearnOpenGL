@@ -18,5 +18,5 @@ set_target_properties(
              ${PROJECT_NAME}
              PROPERTIES
              WIN32_EXECUTABLE 
-             TRUE
+             FALSE
 )

@@ -86,15 +86,17 @@ int main()
     //-------------------------------------
     // Create shader
     //-------------------------------------
-    Shader defaultShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/shader.vs", std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/shader.fs");
-
-    auto geometryShader = glCreateShader(GL_GEOMETRY_SHADER);
+    Shader defaultShader(
+        shader_entity<GL_VERTEX_SHADER>{std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/shader.vs" },
+        shader_entity<GL_FRAGMENT_SHADER >{std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/shader.fs"},
+        shader_entity<GL_GEOMETRY_SHADER>{std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/shader.gs"}
+    );
 
     float points[] = {
-        -0.5f,  0.5f, // 左上
-         0.5f,  0.5f, // 右上
-         0.5f, -0.5f, // 右下
-        -0.5f, -0.5f  // 左下
+        -0.5f,  0.5f, 1.0f, 0.0f, 0.0f, // 左上
+         0.5f,  0.5f, 0.0f, 1.0f, 0.0f, // 右上
+         0.5f, -0.5f, 0.0f, 0.0f, 1.0f, // 右下
+        -0.5f, -0.5f, 1.0f, 1.0f, 0.0f  // 左下
     };
 
     // VAO
@@ -105,14 +107,16 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(points), &points, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(sizeof(float) * 2));
     //--------------------------------------
     // global opengl setting
     //--------------------------------------
 
     glEnable(GL_DEPTH_TEST);
-    glLineWidth(5.0f);
+    //glLineWidth(5.0f);
+    //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
     //--------------------------------------
     // Main loop
