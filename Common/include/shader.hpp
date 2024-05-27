@@ -12,52 +12,31 @@
 
 #include <glm/gtc/type_ptr.hpp>
 
+template <int I = 0>
+struct shader_entity
+{
+    using Path = std::filesystem::path;
+
+    Path path;
+    static constexpr auto type = I;
+};
 
 class Shader
 {
 public:
-    Shader(const std::filesystem::path& vertex_path, const std::filesystem::path& fragment_path)
-        :ID(0u)
+    template<typename ... entity_types>
+    requires requires { (std::convertible_to<entity_types, shader_entity<>>,...); }
+    constexpr Shader(entity_types&&... shaders)
     {
-        std::string vertex_code;
-        std::string fragment_code;
-
-        std::ifstream vertex_fs{ vertex_path};
-        std::ifstream fragment_fs{ fragment_path};
-        assert(exists(vertex_path) && exists(fragment_path));
-        if (not vertex_fs || not fragment_fs)
-        {
-            throw std::ios_base::failure("file does not exist");
-        }
-
-        try
-        {
-            std::stringstream vertex_stream;
-            std::stringstream fragment_stream;
-
-            vertex_fs >> vertex_stream.rdbuf();
-            fragment_fs >> fragment_stream.rdbuf();
-
-            vertex_code = vertex_stream.str();
-            fragment_code = fragment_stream.str();
-        }
-        catch (std::ifstream::failure&)
-        {
-            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ\n";
-        }
-
-        auto vertex_shader = loadShader(GL_VERTEX_SHADER, vertex_code.data());
-        auto fragment_shader = loadShader(GL_FRAGMENT_SHADER, fragment_code.data());
-
-        ID = createProgramWithShaders(vertex_shader, fragment_shader);
+        id_ = createProgramWithShaders(loadShader(std::forward<entity_types>(shaders))...);
     }
     ~Shader() = default;
 
-    void use() const
+    constexpr void use() const
     {
-        if (ID)
+        if (id_)
         {
-            glUseProgram(ID);
+            glUseProgram(id_);
         }
         else
         {
@@ -65,7 +44,7 @@ public:
         }
     }
 
-    auto prog_id() const { return ID; }
+    [[nodiscard]] constexpr auto prog_id() const { return id_; }
 
     template <typename T>
     void set(const std::string& name, T&& value) const
@@ -73,35 +52,35 @@ public:
         use();
         if constexpr (std::integral<std::remove_cvref_t<T>>)
         {
-            glUniform1i(glGetUniformLocation(ID, name.data()), static_cast<int>(std::forward<T>(value)));
+            glUniform1i(glGetUniformLocation(id_, name.data()), static_cast<int>(std::forward<T>(value)));
         }
         else if constexpr (std::is_same_v<std::remove_cvref_t<T>, float>)
         {
-            glUniform1f(glGetUniformLocation(ID, name.data()), std::forward<T>(value));
+            glUniform1f(glGetUniformLocation(id_, name.data()), std::forward<T>(value));
         }
         else if constexpr (std::is_same_v<std::remove_cvref_t<T>, glm::vec2>)
         {
-            glUniform2fv(glGetUniformLocation(ID, name.data()), 1, glm::value_ptr(std::forward<T>(value)));
+            glUniform2fv(glGetUniformLocation(id_, name.data()), 1, glm::value_ptr(std::forward<T>(value)));
         }
         else if constexpr (std::is_same_v<std::remove_cvref_t<T>, glm::vec3>)
         {
-            glUniform3fv(glGetUniformLocation(ID, name.data()), 1, glm::value_ptr(std::forward<T>(value)));
+            glUniform3fv(glGetUniformLocation(id_, name.data()), 1, glm::value_ptr(std::forward<T>(value)));
         }
         else if constexpr (std::is_same_v<std::remove_cvref_t<T>, glm::vec4>)
         {
-            glUniform4fv(glGetUniformLocation(ID, name.data()), 1, glm::value_ptr(std::forward<T>(value)));
+            glUniform4fv(glGetUniformLocation(id_, name.data()), 1, glm::value_ptr(std::forward<T>(value)));
         }
         else if constexpr (std::is_same_v<std::remove_cvref_t<T>, glm::mat2>)
         {
-            glUniformMatrix2fv(glGetUniformLocation(ID, name.data()), 1, GL_FALSE, glm::value_ptr(std::forward<T>(value)));
+            glUniformMatrix2fv(glGetUniformLocation(id_, name.data()), 1, GL_FALSE, glm::value_ptr(std::forward<T>(value)));
         }
         else if constexpr (std::is_same_v<std::remove_cvref_t<T>, glm::mat3>)
         {
-            glUniformMatrix3fv(glGetUniformLocation(ID, name.data()), 1, GL_FALSE, glm::value_ptr(std::forward<T>(value)));
+            glUniformMatrix3fv(glGetUniformLocation(id_, name.data()), 1, GL_FALSE, glm::value_ptr(std::forward<T>(value)));
         }
         else if constexpr (std::is_same_v<std::remove_cvref_t<T>, glm::mat4>)
         {
-            glUniformMatrix4fv(glGetUniformLocation(ID, name.data()), 1, GL_FALSE, glm::value_ptr(std::forward<T>(value)));
+            glUniformMatrix4fv(glGetUniformLocation(id_, name.data()), 1, GL_FALSE, glm::value_ptr(std::forward<T>(value)));
         }
         else
         {
@@ -109,6 +88,10 @@ public:
         }
     }
 
+    constexpr operator GLuint() const
+    {
+        return prog_id();
+    }
 
 
 private:
@@ -126,6 +109,29 @@ private:
 
         assert(checkCompileErrors(shader));
         return shader;
+    }
+
+    template<GLint I>
+    auto loadShader(const shader_entity<I>& shader) const
+        -> GLuint
+    {
+        std::string file_content;
+        std::ifstream shader_stream{ shader.path };
+        if (not shader_stream)
+        {
+            throw std::ios_base::failure("file does not exist");
+        }
+        try
+        {
+            std::stringstream _ss;
+            shader_stream >> _ss.rdbuf();
+            file_content = _ss.str();
+        }
+        catch (std::ifstream::failure&)
+        {
+            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESSFULLY_READ\n";
+        }
+        return loadShader(shader.type, file_content.c_str());
     }
 
     template<typename... Shaders>
@@ -192,5 +198,5 @@ private:
     }
 
 private:
-    GLuint ID;
+    GLuint id_{0u};
 };
