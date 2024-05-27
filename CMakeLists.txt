@@ -49,3 +49,6 @@ add_subdirectory(Cubemaps_refract)
 
 add_subdirectory(AdvancedGLSL)
 add_subdirectory(GeometryShader)
+add_subdirectory(Explosion)
+add_subdirectory(VisiableNormal)
+add_subdirectory(Instancing)

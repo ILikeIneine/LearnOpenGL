@@ -92,10 +92,22 @@ int main()
     //-------------------------------------
     // Create shader
     //-------------------------------------
-    Shader axisShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.vs", std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.fs");
-    Shader modelShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" "model.vs", std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" "model.fs");
-    Shader skyboxShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/skybox.vs", std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/skybox.fs");
-    Shader manShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/man.vs", std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/man.fs");
+    Shader axisShader(
+        shader_entity<GL_VERTEX_SHADER> {std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.vs"},
+        shader_entity<GL_FRAGMENT_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.fs"}
+    );
+    Shader modelShader(
+        shader_entity<GL_VERTEX_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" "model.vs"},
+        shader_entity<GL_FRAGMENT_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" "model.fs"}
+    );
+    Shader skyboxShader(
+        shader_entity<GL_VERTEX_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/skybox.vs"},
+        shader_entity<GL_FRAGMENT_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/skybox.fs"}
+    );
+    Shader manShader(
+        shader_entity<GL_VERTEX_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/man.vs"},
+        shader_entity<GL_FRAGMENT_SHADER> {std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/man.fs"}
+    );
 
     Model modelInstance{ std::filesystem::current_path() / "../../../../resource/nanosuit_reflection/nanosuit.obj" };
 
