@@ -56,16 +56,16 @@ public:
             // retrieve texture number (the N in diffuse_textureN)
             std::string number;
             std::string name = textures[i].type;
-            if (name == "texture_diffuse")
+            if (name == "diffuse")
                 number = std::to_string(diffuseNr++);
-            else if (name == "texture_specular")
+            else if (name == "specular")
                 number = std::to_string(specularNr++); // transfer unsigned int to string
-            else if (name == "texture_normal")
+            else if (name == "normal")
                 number = std::to_string(normalNr++); // transfer unsigned int to string
-            else if (name == "texture_reflection")
+            else if (name == "height")
                 number = std::to_string(heightNr++); // transfer unsigned int to string
 
-            auto uniform_name = "material." + name + number;
+            auto uniform_name = "material" + number + '.' + name;
 
             glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
             shader.set(uniform_name, i);
