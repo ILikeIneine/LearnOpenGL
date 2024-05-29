@@ -53,3 +53,6 @@ add_subdirectory(Explosion)
 add_subdirectory(VisiableNormal)
 add_subdirectory(Instancing)
 add_subdirectory(AntiAliasing)
+
+add_subdirectory(AdvancedLighting)
+add_subdirectory(GammaCorrection)
