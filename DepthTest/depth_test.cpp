@@ -97,7 +97,9 @@ int main()
     const auto model_fs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" SHADER_NAME ".fs";
     //const auto model_fs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/visiable_depth.fs";
 
-    Shader modelShader(model_vs, model_fs);
+    Shader modelShader(
+        shader_entity<GL_VERTEX_SHADER> {model_vs}, 
+        shader_entity<GL_FRAGMENT_SHADER> {model_fs});
 
     const auto model_path = std::filesystem::current_path() / "../../../../resource/nanosuit/nanosuit.obj";
 

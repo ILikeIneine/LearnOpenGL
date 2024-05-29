@@ -86,12 +86,15 @@ int main()
     //-------------------------------------
     // Create shader
     //-------------------------------------
-    Shader lightingShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/material.vs", 
-                           std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/material.fs");
-    Shader lightCubeShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/light_cube.vs",
-                      std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/light_cube.fs");
-    Shader axisShader(std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.vs",
-                    std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.fs");
+    Shader lightingShader(
+        shader_entity<GL_VERTEX_SHADER> {std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/material.vs"},
+        shader_entity<GL_FRAGMENT_SHADER> {std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/material.fs"});
+    Shader lightCubeShader(
+        shader_entity<GL_VERTEX_SHADER> {std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/light_cube.vs"},
+        shader_entity<GL_FRAGMENT_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/light_cube.fs"});
+    Shader axisShader(
+        shader_entity<GL_VERTEX_SHADER> {std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.vs"},
+        shader_entity<GL_FRAGMENT_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.fs"});
 
     GLfloat axis_vertices[] = {
         // X Öá
