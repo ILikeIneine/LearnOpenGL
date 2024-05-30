@@ -229,6 +229,7 @@ int main()
     glBindVertexArray(floor_vao);
     glBindBuffer(GL_ARRAY_BUFFER, floor_vbo);
     glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
+    glVertexAttribPointer(lighting_PosAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void*>(nullptr));
     glEnableVertexAttribArray(lighting_PosAttrib);
     glVertexAttribPointer(lighting_PosAttrib, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), static_cast<void*>(nullptr));
     glEnableVertexAttribArray(lighting_NormAttrib);
@@ -257,9 +258,17 @@ int main()
     //-------------------------------------------------------------------------
     // shader configuration
     //-------------------------------------------------------------------------
+    glEnable(GL_DEPTH_TEST);
+    glLineWidth(5.0f);
+
+    // light
+    glm::vec3 lightPos(1.2f, 1.0f, 3.0f);
+    glm::vec3 lightColor {1.0 };
+
     boxShader.set("material.diffuse", 0);
     boxShader.set("material.specular", 1);
     boxShader.set("material.shininess", 32.0f);
+
     floorShader.set("floorTexture", 0);
 
     //-------------------------------------------------------------------------
@@ -301,6 +310,12 @@ int main()
         /*
         {
             boxShader.use();
+            /*
+               Here we set all the uniforms for the 5/6 types of lights we have. We have to set them manually and index
+               the proper PointLight struct in the array to set each uniform variable. This can be done more code-friendly
+               by defining light types as classes and set their values in there, or by using a more efficient uniform approach
+               by using 'Uniform buffer objects', but that is something we'll discuss in the 'Advanced GLSL' tutorial.
+            */
             // directional light
             boxShader.set("dirLight.direction", glm::vec3{ -0.2f, -1.0f, -0.3f });
             boxShader.set("dirLight.ambient", glm::vec3{ 0.05f, 0.05f, 0.05f });
@@ -360,11 +375,15 @@ int main()
         }
         // lighting source
         {
+            auto model = glm::mat4(1.0f);
+            model = glm::translate(model, lightPos);
+            model = glm::scale(model, glm::vec3(0.3f)); // a smaller cube
             
             // also draw the lighting source
             lightSrcShader.use();
             lightSrcShader.set("projection", projection);
             lightSrcShader.set("view", view);
+            lightSrcShader.set("cubeColor", lightColor);
 
             glBindVertexArray(lightVAO);
             for (int i = 0; i < 4; ++i)
