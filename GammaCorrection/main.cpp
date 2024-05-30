@@ -310,12 +310,6 @@ int main()
         /*
         {
             boxShader.use();
-            /*
-               Here we set all the uniforms for the 5/6 types of lights we have. We have to set them manually and index
-               the proper PointLight struct in the array to set each uniform variable. This can be done more code-friendly
-               by defining light types as classes and set their values in there, or by using a more efficient uniform approach
-               by using 'Uniform buffer objects', but that is something we'll discuss in the 'Advanced GLSL' tutorial.
-            */
             // directional light
             boxShader.set("dirLight.direction", glm::vec3{ -0.2f, -1.0f, -0.3f });
             boxShader.set("dirLight.ambient", glm::vec3{ 0.05f, 0.05f, 0.05f });
