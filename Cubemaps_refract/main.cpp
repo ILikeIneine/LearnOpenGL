@@ -109,7 +109,9 @@ int main()
         shader_entity<GL_FRAGMENT_SHADER> {std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/man.fs"}
     );
 
+    // Notion: add reflection on mesh.hpp to enable reflection of model
     Model modelInstance{ std::filesystem::current_path() / "../../../../resource/nanosuit_reflection/nanosuit.obj" };
+    //Model modelInstance{ std::filesystem::current_path() / "../../../../resource/zzz/joe.pmx" };
 
     // load textures
     // -------------
@@ -337,9 +339,9 @@ int main()
             manShader.use();
             // directional light
             manShader.set("light.direction", glm::vec3{ 0.0f, 0.0f, 1.0f });
-            manShader.set("light.ambient", glm::vec3{ 1.0f, 1.0f, 1.0f });
+            manShader.set("light.ambient", glm::vec3{ 0.2f, 0.2f, 0.2f });
             manShader.set("light.diffuse", glm::vec3{ 0.4f, 0.4f, 0.4f });
-            manShader.set("light.specular", glm::vec3{ 0.1f, 0.1f, 0.1f });
+            manShader.set("light.specular", glm::vec3{ 1.0f, 1.0f, 1.0f });
             manShader.set("model", model);
             manShader.set("view", view);
             manShader.set("projection", projection);

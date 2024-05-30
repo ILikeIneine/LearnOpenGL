@@ -57,3 +57,6 @@ add_subdirectory(AntiAliasing)
 add_subdirectory(AdvancedLighting)
 add_subdirectory(GammaCorrection)
 add_subdirectory(ShadowMapping)
+
+
+add_subdirectory(ModelTest)
