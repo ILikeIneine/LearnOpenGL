@@ -119,7 +119,6 @@ private:
         std::ifstream shader_stream{ shader.path };
         if (not shader_stream)
         {
-            assert(false);
             throw std::ios_base::failure("file does not exist");
         }
         try

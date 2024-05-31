@@ -10,6 +10,7 @@
 #include <GLFW/glfw3.h>
 #include "shader.hpp"
 #include "camera.hpp"
+#include "model.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
@@ -27,7 +28,7 @@ float lastX = SCR_WIDTH  / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
-Camera camera{ {-0.2f, 0.3f, 5.0} };
+Camera camera{ {0.0f, 5.0f, 3.0f} };
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -95,6 +96,16 @@ int main()
         shader_entity<GL_VERTEX_SHADER>{std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/shader.vs" },
         shader_entity<GL_FRAGMENT_SHADER >{std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/shader.fs"}
     );
+    Shader lightSrcShader(
+        shader_entity<GL_VERTEX_SHADER>{std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/light_cube.vs" },
+        shader_entity<GL_FRAGMENT_SHADER >{std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/light_cube.fs"}
+    );
+    Shader manShader(
+        shader_entity<GL_VERTEX_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/man.vs"},
+        shader_entity<GL_FRAGMENT_SHADER> {std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/man.fs"}
+    );
+
+    Model modelInstance{ std::filesystem::current_path() / "../../../../resource/zzz/joe.pmx" };
 
     unsigned int woodTexture = loadTexture(std::filesystem::current_path() / "../../../../resource/textures/wood.png");
 
@@ -157,31 +168,37 @@ int main()
 
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
-        glm::mat4 lightProjection, lightView;
-        glm::mat4 lightSpaceMatrix;
         float near_plane = 1.0f, far_plane = 7.5f;
-        lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
-        lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
-        lightSpaceMatrix = lightProjection * lightView;
+
+        auto lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, 50.0f);
+        //auto lightProjection = glm::perspective(glm::radians(30.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, near_plane, 100.0f);
+        auto lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+        auto depthMVP = lightProjection * lightView ;
+
         // render scene from light's point of view
         simpleDepthShader.use();
-        simpleDepthShader.set("lightSpaceMatrix", lightSpaceMatrix);
-
+        simpleDepthShader.set("lightSpaceMatrix", depthMVP);
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+            glEnable(GL_CULL_FACE);
             glClear(GL_DEPTH_BUFFER_BIT);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, woodTexture);
-            glCullFace(GL_FRONT);
             renderScene(simpleDepthShader);
-            glCullFace(GL_BACK);
+            auto model = glm::mat4{ 1.0 };
+            model = glm::translate(model, { -4.0, -0.5,0.0 });
+            model = glm::rotate(model, glm::radians(currentFrame * 10), glm::vec3{ 0.0, 1.0, 0.0 });
+            model = glm::scale(model, { 0.2, 0.2, 0.2 });
+            simpleDepthShader.set("model", model);
+            modelInstance.Draw(simpleDepthShader);
+            glDisable(GL_CULL_FACE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // reset viewport
         glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // render normal scene
+        // render real scene
         entityShader.use();
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = camera.GetViewMatrix();
@@ -190,12 +207,39 @@ int main()
 
         entityShader.set("viewPos", camera.Position);
         entityShader.set("lightPos", lightPos);
-        entityShader.set("lightSpaceMatrix", lightSpaceMatrix);
+        entityShader.set("lightSpaceMatrix", depthMVP);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         renderScene(entityShader);
+
+
+        manShader.set("viewPos", camera.Position);
+        manShader.set("lightPos", lightPos);
+        manShader.set("light.direction", glm::vec3{ 0.0, 0.0, 0.0 } - lightPos);
+        manShader.set("light.ambient", glm::vec3{ 0.5f, 0.5f, 0.5f });
+        manShader.set("light.diffuse", glm::vec3{ 0.4f, 0.4f, 0.4f });
+        manShader.set("light.specular", glm::vec3{ 1.0f, 1.0f, 1.0f });
+        model = glm::mat4{ 1.0 };
+        model = glm::translate(model, {-4.0, -0.5,0.0});
+        model = glm::rotate(model, glm::radians(currentFrame * 10), glm::vec3{ 0.0, 1.0, 0.0 });
+        model = glm::scale(model, { 0.2, 0.2, 0.2 });
+        manShader.set("projection", projection);
+        manShader.set("view", view);
+        manShader.set("model", model);
+        modelInstance.Draw(manShader);
+
+        lightSrcShader.use();
+        lightSrcShader.set("projection", projection);
+        lightSrcShader.set("view", view);
+        model = glm::mat4{1.0f};
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, {0.1, 0.1, 0.1});
+        lightSrcShader.set("model", model);
+        lightSrcShader.set("cubeColor", glm::vec3{ 1.0,1.0,1.0 });
+        renderCube();
+
 
         // render debug
         depthViewShader.use();
@@ -226,12 +270,12 @@ void renderScene(const Shader& shader)
     unsigned int planeVAO;
     float planeVertices[] = {
         // positions            // normals         // texcoords
-         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
         -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
-        -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
-
          25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+
         -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+         25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
          25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
     };
     // plane VAO
@@ -379,6 +423,7 @@ void renderQuad()
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
 }
+
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {

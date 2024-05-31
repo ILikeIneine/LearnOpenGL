@@ -30,7 +30,7 @@ float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
-Camera camera{ {0.0, 10.0, 10.0} };
+Camera camera{ {0.0, 3.0, 5.0} };
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
@@ -341,6 +341,11 @@ int main()
             manShader.set("light.ambient", glm::vec3{ 0.5f, 0.5f, 0.5f });
             manShader.set("light.diffuse", glm::vec3{ 0.4f, 0.4f, 0.4f });
             manShader.set("light.specular", glm::vec3{ 1.0f, 1.0f, 1.0f });
+
+            auto model = glm::mat4{ 1.0 };
+            model = glm::rotate(model, glm::radians(currentFrame * 10), glm::vec3{ 0.0, 1.0, 0.0 });
+            model = glm::scale(model, { 0.2, 0.2, 0.2 });
+
             manShader.set("model", model);
             manShader.set("view", view);
             manShader.set("projection", projection);
