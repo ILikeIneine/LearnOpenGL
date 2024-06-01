@@ -30,6 +30,15 @@ bool firstMouse = true;
 
 Camera camera{ {0.0f, 5.0f, 3.0f} };
 
+bool poisson = false;
+bool poissonKeyPressed = false;
+
+bool stopRotate = false;
+bool stopRotatePressed = false;
+
+bool bias = false;
+bool biasPressed = false;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void processInput(GLFWwindow* window);
@@ -104,10 +113,40 @@ int main()
         shader_entity<GL_VERTEX_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/man.vs"},
         shader_entity<GL_FRAGMENT_SHADER> {std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/man.fs"}
     );
+    Shader axisShader(
+        shader_entity<GL_VERTEX_SHADER> {std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.vs"},
+        shader_entity<GL_FRAGMENT_SHADER> { std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/axis.fs"});
 
     Model modelInstance{ std::filesystem::current_path() / "../../../../resource/zzz/joe.pmx" };
 
     unsigned int woodTexture = loadTexture(std::filesystem::current_path() / "../../../../resource/textures/wood.png");
+
+    GLfloat axis_vertices[] = {
+        // X 轴
+        -10.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,  // 原点, 红色
+        10.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f,  // X 轴端点, 红色
+        // Y 轴
+        0.0f, -10.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // 原点, 绿色
+        0.0f, 10.0f, 0.0f, 0.0f, 1.0f, 0.0f,  // Y 轴端点, 绿色
+        // Z 轴
+        0.0f, 0.0f, -10.0f, 0.0f, 0.0f, 1.0f,  // 原点, 蓝色
+        0.0f, 0.0f, 10.0f, 0.0f, 0.0f, 1.0f   // Z 轴端点, 蓝色
+    };
+    //-------------------------------------
+    // axis
+    //-------------------------------------
+    GLuint axis_vao, axis_vbo;
+    glGenVertexArrays(1, &axis_vao);
+    glGenBuffers(1, &axis_vbo);
+    glBindVertexArray(axis_vao);
+    glBindBuffer(GL_ARRAY_BUFFER, axis_vbo);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(axis_vertices), axis_vertices, GL_STATIC_DRAW);
+    // 位置属性
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), static_cast<GLvoid*>(0));
+    glEnableVertexAttribArray(0);
+    // 颜色属性
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(GLfloat), reinterpret_cast<GLvoid*>(3 * sizeof(GLfloat)));
+    glEnableVertexAttribArray(1);
 
     //-------------------------------------
     // configure depth map FBO
@@ -142,9 +181,12 @@ int main()
     entityShader.set("diffuseTexture", 0);
     entityShader.set("shadowMap", 1);
 
+    manShader.set("shadowMap", 3);
+
     // lighting info
     // -------------
-    glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
+    //glm::vec3 lightPos(-3.0f, 4.0f, -4.0f);
+    glm::vec3 lightPos(-6.0f, 4.0f, 0.0f);
 
     //--------------------------------------
     // Main loop
@@ -166,12 +208,21 @@ int main()
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        if (!stopRotate)
+        {
+            lightPos.x = 6.0f * glm::cos(lastFrame * 2);
+            lightPos.z = 6.0f * glm::sin(lastFrame * 2);
+        }
+
+        auto man_model = glm::mat4{ 1.0 };
+        man_model = glm::translate(man_model, { -2.0, -0.5, 0.0 });
+        man_model = glm::rotate(man_model, glm::radians(currentFrame * 10), glm::vec3{ 0.0, 1.0, 0.0 });
+        man_model = glm::scale(man_model, { 0.2, 0.2, 0.2 });
+
         // 1. render depth of scene to texture (from light's perspective)
         // --------------------------------------------------------------
-        float near_plane = 1.0f, far_plane = 7.5f;
-
-        auto lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, 50.0f);
-        //auto lightProjection = glm::perspective(glm::radians(30.0f), (float)SHADOW_WIDTH / (float)SHADOW_HEIGHT, near_plane, 100.0f);
+        float near_plane = 1.0f, far_plane = 15.0f;
+        auto lightProjection = glm::ortho(-20.0f, 20.0f, -20.0f, 20.0f, near_plane, far_plane);
         auto lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
         auto depthMVP = lightProjection * lightView ;
 
@@ -180,18 +231,12 @@ int main()
         simpleDepthShader.set("lightSpaceMatrix", depthMVP);
         glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
-            glEnable(GL_CULL_FACE);
             glClear(GL_DEPTH_BUFFER_BIT);
             glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, woodTexture);
             renderScene(simpleDepthShader);
-            auto model = glm::mat4{ 1.0 };
-            model = glm::translate(model, { -4.0, -0.5,0.0 });
-            model = glm::rotate(model, glm::radians(currentFrame * 10), glm::vec3{ 0.0, 1.0, 0.0 });
-            model = glm::scale(model, { 0.2, 0.2, 0.2 });
-            simpleDepthShader.set("model", model);
+            simpleDepthShader.set("model", man_model);
             modelInstance.Draw(simpleDepthShader);
-            glDisable(GL_CULL_FACE);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
         // reset viewport
@@ -204,42 +249,50 @@ int main()
         glm::mat4 view = camera.GetViewMatrix();
         entityShader.set("projection", projection);
         entityShader.set("view", view);
-
         entityShader.set("viewPos", camera.Position);
-        entityShader.set("lightPos", lightPos);
+        entityShader.set("lightDirection", lightPos - glm::vec3{ 0.0, 0.0, 0.0 });
         entityShader.set("lightSpaceMatrix", depthMVP);
+        entityShader.set("poisson", poisson);
+        entityShader.set("biasEnabled", bias);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, depthMap);
         renderScene(entityShader);
 
-
         manShader.set("viewPos", camera.Position);
         manShader.set("lightPos", lightPos);
-        manShader.set("light.direction", glm::vec3{ 0.0, 0.0, 0.0 } - lightPos);
+        manShader.set("light.direction",  lightPos - glm::vec3{ 0.0, 0.0, 0.0 });
         manShader.set("light.ambient", glm::vec3{ 0.5f, 0.5f, 0.5f });
         manShader.set("light.diffuse", glm::vec3{ 0.4f, 0.4f, 0.4f });
         manShader.set("light.specular", glm::vec3{ 1.0f, 1.0f, 1.0f });
-        model = glm::mat4{ 1.0 };
-        model = glm::translate(model, {-4.0, -0.5,0.0});
-        model = glm::rotate(model, glm::radians(currentFrame * 10), glm::vec3{ 0.0, 1.0, 0.0 });
-        model = glm::scale(model, { 0.2, 0.2, 0.2 });
         manShader.set("projection", projection);
+        manShader.set("lightSpaceMatrix", depthMVP);
         manShader.set("view", view);
-        manShader.set("model", model);
+        manShader.set("model", man_model);
+        manShader.set("poisson", poisson);
+        manShader.set("biasEnabled", bias);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, depthMap);
         modelInstance.Draw(manShader);
 
         lightSrcShader.use();
         lightSrcShader.set("projection", projection);
         lightSrcShader.set("view", view);
-        model = glm::mat4{1.0f};
+        auto model = glm::mat4{1.0f};
         model = glm::translate(model, lightPos);
         model = glm::scale(model, {0.1, 0.1, 0.1});
         lightSrcShader.set("model", model);
         lightSrcShader.set("cubeColor", glm::vec3{ 1.0,1.0,1.0 });
         renderCube();
-
+        // axis
+        model = glm::mat4(1.0f);
+        axisShader.use();
+        axisShader.set("projection", projection);
+        axisShader.set("view", view);
+        axisShader.set("model", model);
+        glBindVertexArray(axis_vao);
+        glDrawArrays(GL_LINES, 0, 6);
 
         // render debug
         depthViewShader.use();
@@ -447,6 +500,36 @@ void processInput(GLFWwindow* window)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
     if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_RELEASE)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && !poissonKeyPressed)
+    {
+        poisson = !poisson;
+        poissonKeyPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_P) == GLFW_RELEASE)
+    {
+        poissonKeyPressed = false;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !stopRotatePressed)
+    {
+        stopRotate = !stopRotate;
+        stopRotatePressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
+    {
+        stopRotatePressed = false;
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS && !biasPressed)
+    {
+        bias= !bias;
+        biasPressed = true;
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_RELEASE)
+    {
+        biasPressed = false;
+    }
 }
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)

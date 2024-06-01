@@ -11,8 +11,11 @@ in VS_OUT {
 uniform sampler2D diffuseTexture;
 uniform sampler2D shadowMap;
 
-uniform vec3 lightPos;
+uniform vec3 lightDirection;
 uniform vec3 viewPos;
+
+uniform bool poisson;
+uniform bool biasEnabled;
 
 vec2 poissonDisk[16] = vec2[]( 
    vec2( -0.94201624, -0.39906216 ), 
@@ -32,8 +35,6 @@ vec2 poissonDisk[16] = vec2[](
    vec2( 0.19984126, 0.78641367 ), 
    vec2( 0.14383161, -0.14100790 ) 
 );
-
-bool poisson = true;
 
 float random(vec4 seed4)
 {
@@ -63,7 +64,7 @@ float ShadowCalculation(vec4 fragPosLightSpace, float bias)
     {
         for (int i = 0; i < 4; ++i)
         {
-            int index = int(16.0 * random(vec4(fs_in.FragPos.xyy, i))) % 16;
+            int index = int(16.0 * random(vec4(fragPosLightSpace.xyy, i))) % 16;
             if(texture(shadowMap, projCoords.xy + poissonDisk[index] * texelSize).r < currentDepth - bias)
                 shadow += 1.0;
         }
@@ -95,7 +96,7 @@ void main()
     // ambient
     vec3 ambient = 0.3 * lightColor;
     // diffuse
-    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
+    vec3 lightDir = normalize(lightDirection);
     float diff = max(dot(lightDir, normal), 0.0);
     vec3 diffuse = diff * lightColor;
     // specular
@@ -107,7 +108,11 @@ void main()
     vec3 specular = spec * lightColor;    
 
     // calculate shadow
-    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float bias = 0.0f;
+    if (biasEnabled)
+    {
+        bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    }
     float shadow = ShadowCalculation(fs_in.FragPosLightSpace, bias);
 
     vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;    
