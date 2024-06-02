@@ -94,8 +94,8 @@ int main()
     // Create shader
     //-------------------------------------
     const auto model_vs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" SHADER_NAME ".vs";
-    const auto model_fs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" SHADER_NAME ".fs";
-    //const auto model_fs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/visiable_depth.fs";
+    //const auto model_fs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/" SHADER_NAME ".fs";
+    const auto model_fs = std::filesystem::current_path() / "../../../../" PROJECT_NAME "/shaders/visiable_depth.fs";
 
     Shader modelShader(
         shader_entity<GL_VERTEX_SHADER> {model_vs}, 

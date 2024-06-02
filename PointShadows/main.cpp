@@ -28,8 +28,8 @@ float lastX     = SCR_WIDTH / 2.0f;
 float lastY     = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
 
-bool shadows = true;
-bool shadowsKeyPressed = false;
+bool stopRotate = false;
+bool stopRotatePressed = false;
 bool pcfEnabled = false;
 bool pcfKeyPressed = false;
 
@@ -196,10 +196,12 @@ int main()
         processInput(window);
 
         // move light position over time
-        lightPos.z = static_cast<float>(sin(glfwGetTime() * 0.5) * 3.0);
+        if (!stopRotate)
+            lightPos.z = static_cast<float>(sin(glfwGetTime() * 0.5) * 3.0);
         auto man_model = glm::mat4{ 1.0 };
-        man_model = glm::translate(man_model, { 0.0, -8.0, 0.0 });
-        man_model = glm::rotate(man_model, glm::radians((float)glfwGetTime() * 100.0f), glm::vec3{ 0.0, 1.0, 0.0 });
+        man_model = glm::translate(man_model, { 0.0, -5.0, 0.0 });
+        if (!stopRotate)
+            man_model = glm::rotate(man_model, glm::radians((float)glfwGetTime() * 100.0f), glm::vec3{ 0.0, 1.0, 0.0 });
         man_model = glm::scale(man_model, { 0.2, 0.2, 0.2 });
 
         auto light_model = glm::mat4{ 1.0f };
@@ -251,7 +253,6 @@ int main()
         defaultShader.set("view", view);
         defaultShader.set("lightPos", lightPos);
         defaultShader.set("viewPos", camera.Position);
-        defaultShader.set("shadows", shadows);
         defaultShader.set("pcfEnabled", pcfEnabled);
         defaultShader.set("far_plane", far_plane);
         glActiveTexture(GL_TEXTURE0);
@@ -262,7 +263,6 @@ int main()
 
         // render model
         manShader.set("viewPos", camera.Position);
-        manShader.set("shadows", shadows);
         manShader.set("far_plane", far_plane);
         manShader.set("pcfEnabled", pcfEnabled);
         manShader.set("light.position", lightPos);
@@ -314,7 +314,7 @@ void renderScene(const Shader& shader)
     // ------------------------------------------------------------------
     // room cube
     glm::mat4 model = glm::mat4(1.0f);
-    model = glm::scale(model, glm::vec3(10.0f));
+    model = glm::scale(model, glm::vec3(5.0f));
     shader.set("model", model);
     // note that we disable culling here since we render 'inside' the cube instead of the usual 'outside' which throws off the normal culling methods.
     glDisable(GL_CULL_FACE);
@@ -455,14 +455,14 @@ void processInput(GLFWwindow* window)
     if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_RELEASE)
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !shadowsKeyPressed)
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS && !stopRotatePressed)
     {
-        shadows = !shadows;
-        shadowsKeyPressed = true;
+        stopRotate = !stopRotate;
+        stopRotatePressed = true;
     }
     if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_RELEASE)
     {
-        shadowsKeyPressed = false;
+        stopRotatePressed = false;
     }
 
     if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS && !pcfKeyPressed)

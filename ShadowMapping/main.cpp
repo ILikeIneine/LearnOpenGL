@@ -216,7 +216,8 @@ int main()
 
         auto man_model = glm::mat4{ 1.0 };
         man_model = glm::translate(man_model, { -2.0, -0.5, 0.0 });
-        man_model = glm::rotate(man_model, glm::radians(currentFrame * 10), glm::vec3{ 0.0, 1.0, 0.0 });
+        if (!stopRotate)
+            man_model = glm::rotate(man_model, glm::radians(currentFrame * 10), glm::vec3{ 0.0, 1.0, 0.0 });
         man_model = glm::scale(man_model, { 0.2, 0.2, 0.2 });
 
         // 1. render depth of scene to texture (from light's perspective)
